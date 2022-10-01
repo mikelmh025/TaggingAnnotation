@@ -1,0 +1,63 @@
+<!-- http://uniqueturker.myleott.com/ -->
+
+<script src="//uniqueturker.myleott.com/lib.js" type="text/javascript"></script>
+<script type="text/javascript">
+    function LimitFunction(){
+        var ut_id = "897fe307b6dca8733a0cc95114dc22a0";
+        if (UTWorkerLimitReached(ut_id)) {
+            document.getElementById('mturk_form').style.display = 'none';
+            document.getElementsByTagName('body')[0].innerHTML = "You have already completed the maximum number of HITs allowed by this requester. Please click 'Return HIT' to avoid any impact on your approval rating.";
+        }
+
+    }
+</script>
+
+
+
+<body onload="LimitFunction()">
+
+
+
+
+
+<script src="https://assets.crowd.aws/crowd-html-elements.js"></script>
+
+
+
+<p>Task: given the input human image on the left, and cartoon image on the right. Please tell us how well does the cartoon discribe the human. </p>
+<p>Don't need to evluate the artistic style, only focus on “Do they look similar or not”</p>
+<p>Only need to evluate one attribute of the human-cartoon pair at a time. Terminology explained in the Instruction page.</p>
+
+<crowd-form answer-format="flatten-objects" id="mturk_form">
+
+    <p>Task [1/1] </p>
+
+    <crowd-image-classifier 
+        src="${image_url1}"
+        categories="['[ ${var} ] option 1 discribes the human better',
+                     '[ ${var} ] option 2 discribes the human better',
+                     '[ ${var} ] OMG They are equally good/bad. Absolutely no difference']"
+        header="Task: given the input human image on the left, and two cartoon image on the right. 
+                Please evludate the cartoon [${var}]. Tell us how well does it discribe the human? "
+        name="cat1">
+
+        <short-instructions>
+            <p>Task: given the input human image on the left, and cartoon images on the right. </p>
+            <p>Please choose the best matching hair style for the person. </p>
+            <p>Input the hairstyle label</p>
+
+            <p>Skin tone: refer to the skin color of the human/cartton face</p>
+            <P>Face shape: refers to the the jawline and the contour of the cheek.</P>
+            <p>Hair style: refers to the hair. Please focus on hair attributes like: [hair-length], [curly level], [overall shape of the hair] </p>
+            <p>Beard: refer to hair near the jawline. When there is no Beard please choose [OMG They are equally good/bad. Absolutely no difference]</p>
+            <p>Eyewear: refer to glasses or sun glasses. When there is no eyewear please choose [OMG They are equally good/bad. Absolutely no difference]</p>
+            <p>Headwear: refer to things like hat, hair band. When there is no Headwear please choose [OMG They are equally good/bad. Absolutely no difference] </p>
+        </short-instructions>
+
+        <full-instructions header="Classification Instructions">
+        </full-instructions>
+    </crowd-image-classifier>
+
+
+</crowd-form>
+
