@@ -99,7 +99,7 @@ def input_dataset(dataset, noise_type, noise_path, is_human,root=None,face_attr_
     return train_dataset, test_dataset, num_classes, num_training_samples
 
 
-def input_dataset_face_attr(dataset,root=None,human_dir=None):
+def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
 
     if dataset =='face_attribute':
         # train_dataset = face_attributes(root=root,
@@ -114,10 +114,11 @@ def input_dataset_face_attr(dataset,root=None,human_dir=None):
         #                 debug=False)
 
         # TODO fix this hard code path
-        root = '/home/minghao/data/navi_data/'
+        root = '/home/mikelmh025/Documents/data/navi_data/'
         human_dir = 'FairFace2.0/'
-        train_dataset = face_attributes(root,human_dir,debug=False,train=True)
-        test_dataset = face_attributes(root,human_dir,debug=False,train=False)
+        debug = args.debug
+        train_dataset = face_attributes(root,human_dir,debug=debug,train=True)
+        test_dataset = face_attributes(root,human_dir,debug=debug,train=False)
 
         num_classes = train_dataset.num_classes
         num_training_samples = train_dataset.__len__()

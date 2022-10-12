@@ -26,6 +26,8 @@
                 "--loss=mse",
                 "--model=resnet",
                 "--lr=0.0001",
+                "--batch_size=16",
+                "--debug"
             ],
             "console": "integratedTerminal"
         },

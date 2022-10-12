@@ -8,3 +8,5 @@ lark doc/*
 */nohup.out
 */wandb/*
 wandb/*
+
+model_training/*/__pycache__/*

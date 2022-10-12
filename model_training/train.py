@@ -33,6 +33,8 @@ parser.add_argument('--num_workers', type=int, default=0, help='how many subproc
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 parser.add_argument('--is_human', action='store_true', default=False)
 parser.add_argument('--device', type=str, help='cuda or cpu ', default='cuda')
+parser.add_argument('--debug', action='store_true')
+args = parser.parse_args()
 # parser.add_argument('--model_path', type = str, default = 'cifar_ce.pt')
 
 # Adjust learning rate and for SGD Optimizer
@@ -140,7 +142,7 @@ def main(args):
     noise_type_map = {'clean':'clean_label', 'worst': 'worse_label', 'aggre': 'aggre_label', 'rand1': 'random_label1', 'rand2': 'random_label2', 'rand3': 'random_label3', 'clean100': 'clean_label', 'noisy100': 'noisy_label'}
     args.noise_type = noise_type_map[args.noise_type]
     # load dataset
-    train_dataset,test_dataset,num_classes,num_training_samples = input_dataset_face_attr(args.dataset,root=None,human_dir='v3')
+    train_dataset,test_dataset,num_classes,num_training_samples = input_dataset_face_attr(args, args.dataset,root=None,human_dir='v3')
 
     print('train_labels:', len(train_dataset))
     # load model
@@ -222,7 +224,7 @@ if __name__ == '__main__':
     # wandb.login()
     
     #####################################main code ################################################
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
     # conver args to dict
     # args_dict = vars(args)
