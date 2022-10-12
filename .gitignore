@@ -3,3 +3,8 @@
 data/FairFace2.0/*
 # clean_dataset/*
 lark doc/*
+*/debug_dir/*
+*/__pycache__/*
+*/nohup.out
+*/wandb/*
+wandb/*

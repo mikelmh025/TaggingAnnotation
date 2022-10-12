@@ -7,9 +7,10 @@ import numpy as np
 import os
 import random
 
-root = '/Users/bytedance/Desktop/data/annotations/0_annotation/FairFace2.0/'
+# root = '/Users/bytedance/Desktop/data/annotations/0_annotation/FairFace2.0/'
+root = '/home/minghao/data/navi_data/v3/'
 
-name = 'all_results'
+name = '820_faceattribute_round2_v3_translate'
 csv_path = root+name+'.csv'
 # csv_path = root+'5k_results.csv'
 
