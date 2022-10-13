@@ -3,3 +3,10 @@
 data/FairFace2.0/*
 # clean_dataset/*
 lark doc/*
+
+*.jpg
+
+*/__pycache__/*
+
+*.csv
+Turk/turk_exp/*

@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    
         {
             "name": "Tagging Chrome",
             "request": "launch",
@@ -17,6 +18,12 @@
             "type": "chrome",
             "url": "file:///Users/minghaoliu/Desktop/HITL_navi/Turk/direct_label.html",
             "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "js debug",
+            "program": "Turk/sort_algorithm.js",
+            "request": "launch",
+            "type": "node"
         },
         {
             "name": "Python: Current File",

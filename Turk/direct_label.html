@@ -153,7 +153,21 @@
 </style>
 
 <body>
-
+    <!-- <crowd-form>	
+    <crowd-instructions link-text="View instructions" link-type="button">	
+        <short-summary>	
+            <p>Task: given the input human image on the left, and cartoon images on the right. </p>	
+            <p>Please choose the best matching hair style for the person. </p>	
+            <p>Input the hairstyle label</p>	
+        </short-summary>	
+        <detailed-instructions>	
+            <p>Task: given the input human image on the left, and cartoon images on the right. </p>	
+            <p>Please choose the best matching hair style for the person. </p>	
+            <p>Input the hairstyle label</p>        	
+        </detailed-instructions>	
+    </crowd-instructions>	
+    	
+    </crowd-form>  -->
 
     <head>
         <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
@@ -176,14 +190,16 @@
             <h3>Step2: Observe the cartoon images. Scroll down for more. There are 200+ options to choose from</h3>
 
             <!-- TODO: remote version -->
-            <img class="instruction_img" src="./instruction/instruction1.png" alt="instruction1">
+            <!-- <img class="instruction_img" src="./instruction/instruction1.png" alt="instruction1"> -->
+            <img class="instruction_img" src="https://minghaouserstudy.s3.amazonaws.com/HITL_navi/instruction/instruction1.png" alt="instruction1">
 
             <h3>Step3: Scroll down to find the best matching hairstyle</h3>
             <h3>Step4: Click on best matching hairstyle. Submit button will automatcailly appear after you pick the
                 asset.</h3>
 
             <!-- TODO: remote version -->
-            <img class="instruction_img" src="./instruction/instruction2.png" alt="instruction1">
+            <!-- <img class="instruction_img" src="./instruction/instruction2.png" alt="instruction2"> -->
+            <img class="instruction_img" src="https://minghaouserstudy.s3.amazonaws.com/HITL_navi/instruction/instruction2.png" alt="instruction2">
 
         </div>
     </div>
@@ -199,14 +215,12 @@
 
 
     <div class="main">
-
         <div class="images">
             <div class="subtitle_container">
                 <h3 class="subtitle">Human Image</h3>
-                <img src="../data/FairFace2.0/images/0825_fair_face_clean_100.jpg" alt="1300" width="400" ,
-                    height="400">
+                <!-- <img src="../data/FairFace2.0/images/100.jpg" alt="1300" width="400",height="400"> -->
                 <!-- TODO: Change from local to remote -->
-                <!-- <img src="${image_url1}" alt="input_image" width="400" , height="400"> -->
+                <img src="${image_url1}" alt="input_image" width="400" , height="400">
                 <h3 class="subtitle"> You picked:</h3>
                 <!-- TODO: add default image -->
                 <img src="" class="picked" height="400">
@@ -229,8 +243,8 @@
 
     <script>
         // TODO: Change from local to remote
-        // const link_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/bitmoji_asset/'; // AWS s3 link
-        const link_root = '../data/asset/images/'; // local link
+        const link_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/bitmoji_asset/'; // AWS s3 link
+        // const link_root = '../data/asset/images/'; // local link
 
         // Sorted asset list
         const asset_list = ['2290', '1680', '2286', '3025', '2642', '1729', '1655', '1725', '1697', '2930',
