@@ -4,25 +4,29 @@ import os
 import cv2
 
 # root = '/Users/bytedance/Desktop/data/annotations/820_faceattribute_round2/'
-root = '/Users/bytedance/Desktop/data/annotations/0_annotation/'
-label_image_dir = 'FairFace2.0/'
+root = '/home/minghao/data/navi_data/'
+label_image_dir = 'v3/' #'v3/'#
+# label_image_dir = 'FairFace2.0/' #'v3/'#
 
 
-human_json_path = root + label_image_dir + 'all_results_relax.json'
+# human_json_path = root + label_image_dir + 'all_results_relax.json' 
+human_json_path = root + label_image_dir + '820_faceattribute_round2_v3_translate_relax.json' 
+
 asset_json_path = root + 'asset/820_faceattribute_round2_asset_translate_relax.json'
 asset_dir       = root + 'asset/images'
-image_pre_fix = '' #'820_faceattribute_round2_'
+image_pre_fix = ''
 human_image_dir = root + label_image_dir + 'images'
 
 save_dir = root + label_image_dir + 'mapped'
 show_top = 10
 
 # Manual
-bitmoji_auto_dir = '/Users/bytedance/Desktop/data/annotations/benchmark_v3/matched_results/3_bitmoji_auto'
+bitmoji_auto_dir = root + 'asset/3_bitmoji_auto'
 bitmoji_auto_paths = data_utils.make_im_set(bitmoji_auto_dir)
-bitmoji_manual_dir = '/Users/bytedance/Desktop/data/annotations/benchmark_v3/matched_results/4_bitmoji_manual'
+bitmoji_manual_dir = root + 'asset/4_bitmoji_manual'
 bitmoji_manual_paths = data_utils.make_im_set(bitmoji_manual_dir)
-invalid_path = '/Users/bytedance/Desktop/data/annotations/811_fairV3_430_nto1/invalid.png'
+invalid_path = root + 'asset/invalid.png'
+# invalid_path = '/Users/bytedance/Desktop/data/annotations/811_fairV3_430_nto1/invalid.png'
 
 with open(human_json_path, 'r') as f:
     human_data = json.load(f)
@@ -169,6 +173,12 @@ for human_key in human_data:
     cont_save_dir = str(save_dir)+'_concatenate'
     os.makedirs(cont_save_dir, exist_ok=True)
     cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+
+    match_save_dir = str(save_dir)+'_match'
+    os.makedirs(match_save_dir, exist_ok=True)
+    paired_image = cv2.imread(matched_asset_paths[1])
+    paired_image_name = matched_asset_paths[1].split('/')[-1].split('.')[0]
+    cv2.imwrite(str(match_save_dir+'/'+image_name+'_'+paired_image_name+'.jpg'), paired_image)
 
         
             
