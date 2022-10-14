@@ -69,7 +69,17 @@ def search_best_match(human_path, human_json, asset_json, algo,top_k=5):
     human_label = human_json[human_name.replace('.jpg','.png')]
 
     score_dict = {}
-    for key in asset_json: _,score_dict[key] = algo.eval_distance(human_label, asset_json[key])
+    score_report_dict = {}
+    for key in asset_json: 
+        if str(11364) in human_name and str(1704) in key:
+            a=1
+        if str(16148) in human_name and str(1704) in key:
+            a=1
+        if str(12999) in human_name and str(1697) in key:
+            a=1
+        if str(16322) in human_name and str(2642) in key:
+            a=1
+        score_report_dict[key],score_dict[key] = algo.eval_distance(human_label, asset_json[key])
 
     # sort score_dict by value
     score_dict = {k: score_dict[k] for k in sorted(score_dict, key=score_dict.get, reverse=False)}
@@ -77,7 +87,8 @@ def search_best_match(human_path, human_json, asset_json, algo,top_k=5):
     # get top_k
     top_k_list = list(score_dict.keys())[:top_k]
     top_k_scores = list(score_dict.values())[:top_k]
-    return top_k_list, top_k_scores
+    top_k_report = [score_report_dict[key] for key in top_k_list]
+    return top_k_list, top_k_scores, top_k_report
         
 
 # TODO: Show image results
@@ -86,9 +97,27 @@ for case in result_dict:
     matched_paths = [asset_img_dir+'/'+path+'.png' for path in result_dict[case]['hair']]
     matched_tile  = ['Turk '+str(i+1) for i in range(len(matched_paths))]
 
-    top_k_paths,top_k_scores   = search_best_match(input_path, human_json_dict, asset_sample_json, algo, top_k=3)
-    top_k_paths                = [asset_img_dir+'/'+path for path in top_k_paths]
-    top_k_title                = ['T: '+str(top_k_scores[i]) for i in range(len(top_k_scores))]
+    top_k_paths,top_k_scores, top_k_report   = search_best_match(input_path, human_json_dict, asset_sample_json, algo, top_k=3)
+    top_k_paths                              = [asset_img_dir+'/'+path for path in top_k_paths]
+    # top_k_title                              = ['T: '+str(top_k_scores[i]) for i in range(len(top_k_scores))]
+    human_title = ''
+    human_label = human_json_dict[case.replace('.jpg','.png')]
+    for attr in human_label:
+        row_text = attr+': '
+        for item in human_label[attr]:
+            row_text += 'opt: '+item.split('-')[0] + ' vo: '+ str(human_label[attr][item]) + ' | '
+        row_text += '\n'
+        human_title += row_text
+
+    top_k_title = []
+    for i in range(len(top_k_scores)):
+        cur_ = 'T: '+str(round(top_k_scores[i],1))
+        for key in top_k_report[i]:
+            if type(top_k_report[i][key]) == list:
+                cur_ += ' '+key+': '+str(top_k_report[i][key]) + ' \n'
+            elif top_k_report[i][key] != 0:
+                cur_ += ' '+key+': '+str(round(top_k_report[i][key],1)) + ' \n'
+        top_k_title.append(cur_)
 
     turk_image_paths = [input_path] + matched_paths #+ [ asset_img_dir+'/'+path for path in top_k_match]
     # Read images
@@ -96,7 +125,7 @@ for case in result_dict:
     
     # image_row = data_utils.horizontal_cat(all_images,column=0)
     im_concat1 = data_utils.concat_list_image(turk_image_paths,['input']+matched_tile)
-    im_concat2 = data_utils.concat_list_image([input_path]+top_k_paths, ['']+top_k_title)
+    im_concat2 = data_utils.concat_list_image([input_path]+top_k_paths, [human_title]+top_k_title)
 
     im_concat = data_utils.vertical_cat([im_concat1,im_concat2])
     cv2.imwrite(save_image_root+case,im_concat)

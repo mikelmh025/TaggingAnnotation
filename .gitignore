@@ -17,3 +17,8 @@ model_training/*/__pycache__/*
 
 *.csv
 Turk/turk_exp/*
+
+*/.DS_Store
+*.pyc
+tune_search/*
+.DS_Store
