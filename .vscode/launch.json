@@ -21,7 +21,7 @@
         },
         {
             "name": "js debug",
-            "program": "Turk/sort_algorithm.js",
+            "program": "tagging-app/src/components/DetailSection/search_algo.js",
             "request": "launch",
             "type": "node"
         },

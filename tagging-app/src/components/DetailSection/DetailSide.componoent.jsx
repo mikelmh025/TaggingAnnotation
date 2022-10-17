@@ -4,10 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { isChecked } from "../../slices/categorySlice";
 import data from '../../asset/data.json';
 import { addResult } from "../../slices/resultSlice";
+import search_algorithm from './search_algo';
 
 const DetailSide = (props) => {
     const selectObj = props.selectCategory;
     const dispatch = useDispatch();
+    const results = useSelector((state) => state.results);
     const options = data[selectObj.groupName][selectObj.selection];
     const [selectItem, setSelectItem] = useState(null);
     const [selectIndex, setSelectIndex] = useState(null);
@@ -16,14 +18,14 @@ const DetailSide = (props) => {
 
     const renderOptions = Object.keys(options).map((item, index) => {
         const option = options[item]
-        return item !== 'description' && item !== 'url' && ( 
+        return item !== 'description' && item !== 'url' && (
             <div
                 className="optionItem"
                 key={index}
                 onClick={() => {
                     setSelectItem(item);
                     setSelectIndex(index);
-                    expectHandler();
+                    expectHandler(item);
                 }}
                 style={{
                     border: selectIndex === index && '2px solid blue',
@@ -33,16 +35,23 @@ const DetailSide = (props) => {
                     justifyContent: 'start',
                 }}
             >
-                <h4 style={{textAlign: 'center', margin: 15,}}>{option.title}</h4>
-                <img src={option.url} alt="option" className="optionImg" style={{alignSelf: 'center'}}/>
+                <h4 style={{ textAlign: 'center', margin: 15, }}>{option.title}</h4>
+                <img src={option.url} alt="option" className="optionImg" style={{ alignSelf: 'center' }} />
                 <p className="optionDescription">{option.description}</p>
             </div>
         );
     });
 
-    const expectHandler = () => {
-        const expectObj = {[selectObj.groupName]: {[selectObj.selection]: selectItem}};
-        
+    const expectHandler = (item) => {
+        const expectObj = {
+            group: selectObj.groupName,
+            category: selectObj.selection,
+            selection: item,
+        };
+        // console.log("now and all");
+        console.log(results);
+        search_algorithm(expectObj,results);
+
     }
 
     // const renderExpectItem = Object.keys(expectItem).map((item, index) => {
@@ -59,7 +68,7 @@ const DetailSide = (props) => {
     return (
         <div className="mainContainer">
             <div className="headerContainer">
-                <img src={data[selectObj.groupName].url} alt="Category" className="groupImage"/>
+                <img src={data[selectObj.groupName].url} alt="Category" className="groupImage" />
                 <div className="groupTextContainer">
                     <p className="groupText">{options.description}</p>
                 </div>
