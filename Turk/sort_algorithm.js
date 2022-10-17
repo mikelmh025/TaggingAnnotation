@@ -2,6 +2,8 @@
 // javascript version of search_algorithm.py
 
 function search(selected_dict){
+    selected_dict = translation_4_search(selected_dict);
+
     var a=1
     const distance_score_type = {
         'top_direction': 3, 
@@ -9796,11 +9798,8 @@ function search(selected_dict){
                 }
                 
                 
-            }
-            
+            }   
         }
-        
-        
     }
 
     // sort match_score by value return a dict
@@ -9841,6 +9840,11 @@ const now_select = {
         'Count': 'option3',
         'Position': 'option1',
     }
+}
+
+function translation_4_search(){
+
+    
 }
 
 var a = search(now_select)
