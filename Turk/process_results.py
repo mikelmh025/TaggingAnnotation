@@ -6,7 +6,12 @@ import cv2
 import os
 from search_algo  import search_algorithm 
 import json
+import numpy as np
+from itertools import groupby
+
+
 # url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/test/'
+save_match_img = False
 
 human_img_dir = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/test'
 asset_img_dir = '/Users/minghaoliu/Desktop/HITL_navi/data/asset/images'
@@ -90,9 +95,16 @@ def search_best_match(human_path, human_json, asset_json, algo,top_k=5):
     top_k_report = [score_report_dict[key] for key in top_k_list]
     return top_k_list, top_k_scores, top_k_report
         
-
+time_list = []
+agreement_temp = [0]*3 # 3 Rounds of annotation
 # TODO: Show image results
 for case in result_dict:
+    # Get time and agreement levels
+    time_list += result_dict[case]['time']
+    cur_vot = result_dict[case]['hair']
+    aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
+    agreement_temp[aggrement-1] += 1
+
     input_path = human_img_dir+'/'+case
     matched_paths = [asset_img_dir+'/'+path+'.png' for path in result_dict[case]['hair']]
     matched_tile  = ['Turk '+str(i+1) for i in range(len(matched_paths))]
@@ -124,14 +136,20 @@ for case in result_dict:
     # all_images = [data_utils.read_img(path) for path in all_image_paths]
     
     # image_row = data_utils.horizontal_cat(all_images,column=0)
-    im_concat1 = data_utils.concat_list_image(turk_image_paths,['input']+matched_tile)
-    im_concat2 = data_utils.concat_list_image([input_path]+top_k_paths, [human_title]+top_k_title)
+    if save_match_img:
+        im_concat1 = data_utils.concat_list_image(turk_image_paths,['input']+matched_tile)
+        im_concat2 = data_utils.concat_list_image([input_path]+top_k_paths, [human_title]+top_k_title)
 
-    im_concat = data_utils.vertical_cat([im_concat1,im_concat2])
-    cv2.imwrite(save_image_root+case,im_concat)
+        im_concat = data_utils.vertical_cat([im_concat1,im_concat2])
+        cv2.imwrite(save_image_root+case,im_concat)
 
+
+print('avg time: ',np.mean(time_list))
+aggre_works = 100*sum(agreement_temp[1:])/sum(agreement_temp)
+print("Match aggrement",agreement_temp, "aggre_works",aggre_works)
 
 # TODO: show time distribution
+a=1
 
 
 # TODO: show disagreement level 

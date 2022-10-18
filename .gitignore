@@ -22,3 +22,6 @@ Turk/turk_exp/*
 *.pyc
 tune_search/*
 .DS_Store
+
+clean_dataset/.DS_Store
+*.pyc

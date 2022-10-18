@@ -7,12 +7,10 @@ import numpy as np
 import os
 import random
 
-# root = '/Users/bytedance/Desktop/data/annotations/0_annotation/FairFace2.0/'
-root = '/home/minghao/data/navi_data/v3/'
+root = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/'
 
-name = '820_faceattribute_round2_v3_translate'
+name = 'all_results_quality_check_all2'
 csv_path = root+name+'.csv'
-# csv_path = root+'5k_results.csv'
 
 quality_check_csv_path = root+ name + '_quality_check_all.csv'
 quality_check_10_csv_path = root+ name + '_quality_check_10.csv'
