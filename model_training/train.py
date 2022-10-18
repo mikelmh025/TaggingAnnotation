@@ -5,13 +5,14 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
+import torchvision.models as models
 from data.datasets import input_dataset, input_dataset_face_attr
 from models import *
 import argparse
 import numpy as np
 
 
-from loss import forward_loss, loss_cross_entropy,loss_spl, f_beta, f_alpha_hard, lq_loss, loss_peer, loss_cores, forward_loss,mse_loss
+from loss import forward_loss, loss_cross_entropy,loss_spl, f_beta, f_alpha_hard, lq_loss, loss_peer, loss_cores, forward_loss,mse_loss, softmax_cross_entropy_with_softtarget
 from torch.utils.data import RandomSampler
 from variable_optim import VSGD
 
@@ -83,7 +84,7 @@ def accuracy_labels(pred,label,label_index_dict):
     # label = label.clone().detach().cpu().numpy()
 
     # Intial total loss tensor
-    total_loss = torch.tensor(0.0).to(args.device)
+    total_loss = []
     batch_size = pred.shape[0]
 
     correct = {}
@@ -92,17 +93,24 @@ def accuracy_labels(pred,label,label_index_dict):
         pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
         label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
         if label_type in continuous_attr_dict:
-            total_loss += mse_loss(pred_cur,label_cur) 
+            total_loss += [mse_loss(pred_cur,label_cur)] 
             diff = torch.abs(pred_cur-label_cur)
-            correct[label_type] = torch.sum(diff<0.1).item()
-        # elif label_type in discrete_attr_dict:
-        #     total_loss += loss_cross_entropy(pred_cur,label_cur)*0
-        #     correct[label_type] = torch.sum(pred_cur==label_cur).item()
-        # elif label_type in multi_class_attr_dict:
-        #     total_loss += loss_cross_entropy(pred_cur,label_cur) *0
-        #     correct[label_type] = torch.sum(pred_cur==label_cur).item()
+            correct[label_type] = torch.sum(diff<=0.5).item()
+        elif label_type in discrete_attr_dict:
+            total_loss += [loss_cross_entropy(pred_cur,label_cur)]
+            pred_max = torch.argmax(pred_cur,dim=1)
+            label_max = torch.argmax(label_cur,dim=1)
+            correct[label_type] = torch.sum(pred_max==label_max).item()
+        elif label_type in multi_class_attr_dict:
+            # TODO: Fix this
+            continue
+            total_loss += [loss_cross_entropy(pred_cur,label_cur)]
+            pred_max = torch.argmax(pred_cur,dim=1)
+            label_max = torch.argmax(label_cur,dim=1)
+            correct[label_type] = torch.sum(pred_max==label_max).item()
 
-    total_prec = sum(correct.values())/(batch_size*len(label_index_dict))
+    total_prec = sum(correct.values())/(batch_size*len(correct))
+    total_loss = sum(total_loss)
     return total_loss, correct, total_prec
 
 # Train the Model
@@ -140,7 +148,7 @@ def train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict)
             print('report(Last batch)',report)
 
 
-    train_acc=float(train_correct)/float(train_total)
+    train_acc=100*float(train_correct)/float(train_total)
     return train_acc, loss
 
 # Evaluate the Model
@@ -150,6 +158,7 @@ def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir
     correct = 0
     total = 0
     batch_size = test_loader.batch_size
+    print_report = {}
     for images, labels, _ in test_loader:
         images = Variable(images).to(args.device)
         labels = Variable(labels).to(args.device)
@@ -157,14 +166,17 @@ def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir
         # outputs = F.softmax(logits, dim=1)
         # _, pred = torch.max(outputs.data, 1)
         loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
+        for key in correct_dict:
+            if key not in print_report: print_report[key] = []
+            print_report[key].append(correct_dict[key])
 
-        total += 1 #labels.size(0)
-        correct += prec #(logits.cpu() == labels).sum()
+        total += labels.size(0)
+        correct += prec*labels.size(0) #(logits.cpu() == labels).sum()
     acc = 100*float(correct)/float(total)
     print('Epoch [%d/%d] Test Accuracy: %.4f' % (epoch+1, args.n_epoch, acc))
     report = ''
-    for label_type in correct_dict:
-        report += label_type + ": "+str(100*correct_dict[label_type]/batch_size) + ' || '
+    for label_type in print_report:
+        report += label_type + ": "+str(100*sum(print_report[label_type])/total) + ' || '
     print('Test report(Last batch)',report)
 
     if save:
@@ -216,7 +228,14 @@ def main(args):
         model = Inception3()
     else:
         # model = ResNet34(num_classes)
-        model = resnet_256(num_classes)
+        # model = models.resnet34(pretrained=True)
+        model = resnet_pre(num_classes)
+        # model = resnet_256(num_classes)
+
+    # # load pretrained model
+    # if args.pretrained:
+    #     print('loading pretrained model...')
+    #     model.load_state_dict(torch.load(args.pretrained))
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.0005, momentum=0.9)
     # optimizer = VSGD(model.parameters(), lr=learning_rate, variability=0.05, num_iters=math.ceil(50000/ batch_size) , weight_decay=1e-4)
