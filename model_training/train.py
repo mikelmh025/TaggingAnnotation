@@ -20,10 +20,10 @@ parser.add_argument('--lr', type = float, default = 0.05)
 parser.add_argument('--batch_size', type = int, default = 128)
 parser.add_argument('--loss', type = str, help = 'ce, gce, dmi, flc, uspl,spl,peerloss', default = 'ce')
 parser.add_argument('--result_dir', type = str, help = 'dir to save result txt files', default = '/home/jovyan/results')
-parser.add_argument('--noise_type', type = str, help='clean_label, aggre_label, worse_label, random_label1, random_label2, random_label3', default='clean_label')
-parser.add_argument('--noise_path', type = str, help='path of CIFAR-10_human.pt', default='./data/noise_label/CIFAR-10_human.pt')
-parser.add_argument('--top_bn', action='store_true')
-parser.add_argument('--ideal', action='store_true')
+# parser.add_argument('--noise_type', type = str, help='clean_label, aggre_label, worse_label, random_label1, random_label2, random_label3', default='clean_label')
+# parser.add_argument('--noise_path', type = str, help='path of CIFAR-10_human.pt', default='./data/noise_label/CIFAR-10_human.pt')
+# parser.add_argument('--top_bn', action='store_true')
+# parser.add_argument('--ideal', action='store_true')
 parser.add_argument('--dataset', type = str, help = ' cifar10 or fakenews', default = 'cifar10')
 parser.add_argument('--model', type = str, help = 'cnn,resnet,vgg', default = 'resnet')
 parser.add_argument('--n_epoch', type=int, default=100)
@@ -31,11 +31,30 @@ parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--print_freq', type=int, default=50)
 parser.add_argument('--num_workers', type=int, default=0, help='how many subprocesses to use for data loading')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-parser.add_argument('--is_human', action='store_true', default=False)
+# parser.add_argument('--is_human', action='store_true', default=False)
 parser.add_argument('--device', type=str, help='cuda or cpu ', default='cuda')
+parser.add_argument('--data_root', type=str, help='path to dataset', default='/media/otter/navi_hitl/')
+parser.add_argument('--human_dataset', type=str, help='path to dataset', default='FairFace2.0/')
 parser.add_argument('--debug', action='store_true')
 args = parser.parse_args()
 # parser.add_argument('--model_path', type = str, default = 'cifar_ce.pt')
+
+# Golbal variables of attributes
+continuous_attr_dict = {
+    'top_curly':4,
+    'top_length':6,
+    'side_curly':4,
+    'side_length':5
+}
+discrete_attr_dict = {
+    'braid_tf':2,
+    'braid_type':5,
+    'braid_count':4,
+    'braid_position':3
+}
+multi_class_attr_dict = {
+    'top_direction':8
+}
 
 # Adjust learning rate and for SGD Optimizer
 def adjust_learning_rate(optimizer, epoch,alpha_plan,loss_type='cores'):
@@ -59,15 +78,42 @@ def accuracy(logit, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
+def accuracy_labels(pred,label,label_index_dict):
+    # pred = pred.clone().detach().cpu().numpy()
+    # label = label.clone().detach().cpu().numpy()
+
+    # Intial total loss tensor
+    total_loss = torch.tensor(0.0).to(args.device)
+    batch_size = pred.shape[0]
+
+    correct = {}
+
+    for label_type in label_index_dict:
+        pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+        label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+        if label_type in continuous_attr_dict:
+            total_loss += mse_loss(pred_cur,label_cur) 
+            diff = torch.abs(pred_cur-label_cur)
+            correct[label_type] = torch.sum(diff<0.1).item()
+        # elif label_type in discrete_attr_dict:
+        #     total_loss += loss_cross_entropy(pred_cur,label_cur)*0
+        #     correct[label_type] = torch.sum(pred_cur==label_cur).item()
+        # elif label_type in multi_class_attr_dict:
+        #     total_loss += loss_cross_entropy(pred_cur,label_cur) *0
+        #     correct[label_type] = torch.sum(pred_cur==label_cur).item()
+
+    total_prec = sum(correct.values())/(batch_size*len(label_index_dict))
+    return total_loss, correct, total_prec
+
 # Train the Model
-def train(epoch, train_loader, model, optimizer, train_dataset):
+def train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict):
     train_total=0
     train_correct=0
 
-
+    batch_size = train_loader.batch_size
     for i, (images, labels, indexes) in enumerate(train_loader):
         ind=indexes.cpu().numpy().transpose()
-        batch_size = len(ind)
+        
 
         images = Variable(images).to(args.device)
         labels = Variable(labels).to(args.device)
@@ -75,38 +121,51 @@ def train(epoch, train_loader, model, optimizer, train_dataset):
         # Forward + Backward + Optimize
         logits = model(images)
 
+        loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
         # prec, _ = accuracy(logits, labels, topk=(1, 5))
-        # TODO make evluation works here
-        prec = 0 
+
         train_total+=1
         train_correct+=prec
 
-        loss = mse_loss(logits,labels)
+        # loss = mse_loss(logits,labels)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         if (i+1) % args.print_freq == 0:
             print ('Epoch [%d/%d], Iter [%d/%d] Training Accuracy: %.4F, Loss: %.4f'
                   %(epoch+1, args.n_epoch, i+1, len(train_dataset)//batch_size, prec, loss.data))
+            report = ''
+            for label_type in correct_dict:
+                report += label_type + ": "+str(100*correct_dict[label_type]/batch_size) + ' || '
+            print('report(Last batch)',report)
 
 
     train_acc=float(train_correct)/float(train_total)
     return train_acc, loss
 
 # Evaluate the Model
-def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir=None):
+def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir=None,label_index_dict=None):
     model.eval()    # Change model to 'eval' mode.
-    print('previous_best', best_acc_)
+    print('Start evluate previous_best', best_acc_)
     correct = 0
     total = 0
+    batch_size = test_loader.batch_size
     for images, labels, _ in test_loader:
         images = Variable(images).to(args.device)
+        labels = Variable(labels).to(args.device)
         logits = model(images)
         # outputs = F.softmax(logits, dim=1)
         # _, pred = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (logits.cpu() == labels).sum()
+        loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
+
+        total += 1 #labels.size(0)
+        correct += prec #(logits.cpu() == labels).sum()
     acc = 100*float(correct)/float(total)
+    print('Epoch [%d/%d] Test Accuracy: %.4f' % (epoch+1, args.n_epoch, acc))
+    report = ''
+    for label_type in correct_dict:
+        report += label_type + ": "+str(100*correct_dict[label_type]/batch_size) + ' || '
+    print('Test report(Last batch)',report)
 
     if save:
         if acc > best_acc_:
@@ -114,20 +173,21 @@ def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir
                      'epoch':epoch,
                      'acc':acc,
             }
-            save_path= os.path.join(save_dir,args.loss + args.noise_type +'best.pth.tar')
+            # save_path= os.path.join(save_dir,args.loss + args.noise_type +'best.pth.tar')
+            save_path= os.path.join(save_dir,args.loss +'best.pth.tar')
             torch.save(state,save_path)
             best_acc_ = acc
             print(f'model saved to {save_path}!')
 
             state = model.state_dict()
-            save_path= os.path.join(save_dir,args.loss + args.noise_type +'best.pt')
+            save_path= os.path.join(save_dir,args.loss +'best.pt')
             torch.save(state,save_path)
         if epoch == args.n_epoch -1:
             state = {'state_dict': model.state_dict(),
                      'epoch':epoch,
                      'acc':acc,
             }
-            torch.save(state,os.path.join(save_dir,args.loss + args.noise_type +'last.pth.tar'))
+            torch.save(state,os.path.join(save_dir,args.loss +'last.pth.tar'))
     return acc, best_acc_
 
 def main(args):
@@ -135,14 +195,15 @@ def main(args):
     # with wandb.init(config=config):
     #     config = wandb.config
     #     a=1
-    print(args.is_human)
+    # print(args.is_human)
 
     batch_size = args.batch_size
     learning_rate = args.lr
-    noise_type_map = {'clean':'clean_label', 'worst': 'worse_label', 'aggre': 'aggre_label', 'rand1': 'random_label1', 'rand2': 'random_label2', 'rand3': 'random_label3', 'clean100': 'clean_label', 'noisy100': 'noisy_label'}
-    args.noise_type = noise_type_map[args.noise_type]
+    # noise_type_map = {'clean':'clean_label', 'worst': 'worse_label', 'aggre': 'aggre_label', 'rand1': 'random_label1', 'rand2': 'random_label2', 'rand3': 'random_label3', 'clean100': 'clean_label', 'noisy100': 'noisy_label'}
+    # args.noise_type = noise_type_map[args.noise_type]
     # load dataset
     train_dataset,test_dataset,num_classes,num_training_samples = input_dataset_face_attr(args, args.dataset,root=None,human_dir='v3')
+    label_index_dict = train_dataset.get_index_dict()
 
     print('train_labels:', len(train_dataset))
     # load model
@@ -178,9 +239,16 @@ def main(args):
                                     batch_size = batch_size,
                                     num_workers=args.num_workers,
                                     shuffle=False)
+    
+    # nn.DataParallel(model)
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        model = nn.DataParallel(model)
 
+    # model.to(device)
     model.to(args.device)
-    txtfile=save_dir + '/' +  args.loss + args.noise_type + '.txt'
+    # txtfile=save_dir + '/' +  args.loss + args.noise_type + '.txt'
+    txtfile=save_dir + '/' +  args.loss + '.txt'
     if os.path.exists(txtfile):
         os.system('rm %s' % txtfile)
 
@@ -195,13 +263,15 @@ def main(args):
     for epoch in range(args.n_epoch):
     # train models
         print(f'epoch {epoch}')
+        # test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
         # adjust_learning_rate(optimizer, epoch, alpha_plan, loss_type=args.loss)
         model.train()
-        train_acc, train_loss = train(epoch, train_loader, model, optimizer, train_dataset)
+        train_acc, train_loss = train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict)
         scheduler.step()
 
     # evaluate models
-        test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir)
+        test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
+
     # save results
         print('train acc on train images is ', train_acc, "loss is", train_loss)
         print('test acc on test images is ', test_acc)

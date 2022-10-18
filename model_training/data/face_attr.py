@@ -42,12 +42,12 @@ continuous_attr_dict = {
 }
 discrete_attr_dict = {
     'braid_tf':2,
-    'braid_type':4,
-    'braid_count':3,
-    'braid_position':2
+    'braid_type':5,
+    'braid_count':4,
+    'braid_position':3
 }
 multi_class_attr_dict = {
-    'top_direction':7
+    'top_direction':8
 }
 class face_attributes(data.Dataset):
     # Root of single types of dataset
@@ -84,10 +84,11 @@ class face_attributes(data.Dataset):
         # Get mathced image pairs names
         self.match_asset = [ path.split('/')[-1].split('.')[0].split('_')[-1] for path in self.target_img_paths]
         
-        # load json file to dict
+        # load soft label from json file to dict
         self.asset_label_dict = json.load(open(os.path.join(self.asset_dir, 'soft_label.json')))
         self.source_img_label_dict = json.load(open(os.path.join(self.human_dir, 'soft_label.json')))
-        # sort dict
+        self.source_img_label_dict = self.select_case_dict(self.source_img_label_dict, selected_names)
+        # sort label dict
         self.asset_label_dict = {k: v for k, v in sorted(self.asset_label_dict.items(), key=lambda item: item[0])}
         self.source_img_label_dict = {k: v for k, v in sorted(self.source_img_label_dict.items(), key=lambda item: item[0])}
 
@@ -114,10 +115,10 @@ class face_attributes(data.Dataset):
         return len(self.source_img_paths)
         
          
-    def __getitem__(self, index):
+    def __getitem__(self, index, extra_info=False):
         source_img_path = self.source_img_paths[index]
         source_img = self.transform(Image.open(source_img_path).convert('RGB'))
-        source_img_name = source_img_path.split('/')[-1].split('.')[0]+'.png'
+        source_img_name = source_img_path.split('/')[-1].split('.')[0]#+'.png'
 
         if self.target_mode == 'tag':
             label = self.source_img_label_cant_dict[source_img_name]
@@ -125,7 +126,11 @@ class face_attributes(data.Dataset):
         elif label.target_mode == 'img':
             label = self.match_asset[index] # TODO convert to one hot
             a=1
-        return source_img, label,index
+        
+        return source_img, label, index
+
+    def get_index_dict(self):
+        return self.index_dict
     
     def get_mean_std(self, img):
         self.mean = img.mean()
@@ -152,10 +157,11 @@ class face_attributes(data.Dataset):
 
         aggre_label_all = {}
         for image in soft_label:
-            aggre_label_all[image] = template_param
+            aggre_label_all[image] = template_param.copy()
             label_dict = soft_label[image]
 
             for label in label_dict:
+
                 attr_dict = label_dict[label]
 
                 # Convert vote for string dict to int list
@@ -172,23 +178,22 @@ class face_attributes(data.Dataset):
                 # Process discrete attr (vote)
                 elif label in discrete_attr_dict:
                     soft = self.soft_label_to_one_hot(vote_list,discrete_attr_dict[label])
-                    aggre_label_all[image][index_dict[label][0]:index_dict[label][1]] = soft
+                    aggre_label_all[image][index_dict[label][0]:index_dict[label][1]+1] = soft
                     a=1
                 
                 # Process multi class attr (vote)
                 elif label in multi_class_attr_dict:
-                    try:
-                        soft = self.soft_label_to_one_hot(vote_list,multi_class_attr_dict[label])
-                    except:
-                        a =1
-                    aggre_label_all[image][index_dict[label][0]:index_dict[label][1]] = soft
+                    soft = self.soft_label_to_one_hot(vote_list,multi_class_attr_dict[label])
+
+                    aggre_label_all[image][index_dict[label][0]:index_dict[label][1]+1] = soft
                     a=1
                 
-
+                assert len(aggre_label_all[image]) == total_param, 'Soft label length not match'
                 # average_vote = sum(vote_list)/len(vote_list)
                 # label_dict[label] = average_vote
                 # if label == 'top_length':
                 # aggre_label_all[image].append(average_vote)
+        self.index_dict = index_dict
         return soft_label,aggre_label_all
 
     # soft max of aggregated one hot vectors
@@ -197,6 +202,7 @@ class face_attributes(data.Dataset):
         sum_  = np.sum(one_hots,axis=0) # Aggregate votes by sum
         soft  = np.exp(sum_)/sum(np.exp(sum_)) # Use softmax to get soft label
         soft  = soft.tolist()
+        
         return soft
 
     def one_hot(self, a, num_classes):
@@ -207,9 +213,22 @@ class face_attributes(data.Dataset):
         for item in all_paths:
             cur = item.split('/')[-1].split('.')[0]
             cur = cur.replace('0906_fair_face_clean_','').replace('0825_fair_face_clean_','')
+            cur = cur.split('_')[0]
             if cur in selected_names:
                 selected_out.append(item)
         return selected_out
+    
+    def select_case_dict(self, label_dict, selected_names):
+        out_dict = {}
+        for key in label_dict:
+            cur = key.split('/')[-1].split('.')[0]
+            cur = cur.replace('0906_fair_face_clean_','').replace('0825_fair_face_clean_','')
+            cur = cur.split('_')[0]
+
+            if cur in selected_names:
+                out_dict[cur] = label_dict[key]
+
+        return out_dict
 
 if __name__ == '__main__':
     raw_root = '/home/mikelmh025/Documents/data/navi_data/'

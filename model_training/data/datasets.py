@@ -114,8 +114,10 @@ def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
         #                 debug=False)
 
         # TODO fix this hard code path
-        root = '/home/mikelmh025/Documents/data/navi_data/'
-        human_dir = 'FairFace2.0/'
+        # root = '/home/mikelmh025/Documents/data/navi_data/'
+        # human_dir = 'FairFace2.0/'
+        root = args.data_root
+        human_dir = args.human_dataset
         debug = args.debug
         train_dataset = face_attributes(root,human_dir,debug=debug,train=True)
         test_dataset = face_attributes(root,human_dir,debug=debug,train=False)

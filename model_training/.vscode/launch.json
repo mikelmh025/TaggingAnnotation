@@ -19,15 +19,14 @@
             "program": "train.py",
             "args": [
                 "--dataset=face_attribute",
-                "--noise_type=rand1",
-                "--is_human",
                 "--seed=0",
                 "--result_dir=debug_dir",
                 "--loss=mse",
                 "--model=resnet",
-                "--lr=0.0001",
+                "--lr=0.00001",
                 "--batch_size=16",
-                "--debug"
+                "--debug",
+
             ],
             "console": "integratedTerminal"
         },
