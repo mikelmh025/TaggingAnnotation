@@ -13,6 +13,22 @@
             "justMyCode": true
         },
         {
+            "name": "Test",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "args": [
+                "--dataset=face_attribute",
+                "--seed=0",
+                "--result_dir=test_result",
+                "--loss=mse",
+                "--model=resnet",
+                "--batch_size=16",
+                "--get_top_k=5"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Debug Train",
             "type": "python",
             "request": "launch",
@@ -24,6 +40,24 @@
                 "--loss=mse",
                 "--model=resnet",
                 "--lr=0.00001",
+                "--batch_size=16",
+                "--debug",
+                "--target_mode=img"
+
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Test",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "args": [
+                "--dataset=face_attribute",
+                "--seed=0",
+                "--result_dir=debug_testing",
+                "--loss=mse",
+                "--model=resnet",
                 "--batch_size=16",
                 "--debug",
 

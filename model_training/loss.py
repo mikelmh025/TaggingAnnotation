@@ -70,6 +70,13 @@ def loss_fdiv(epoch, y, y_peer, t, t_peer, class_list, ind, noise_or_not,loss_al
     # loss_all[ind,epoch] = loss_numpy
     return torch.sum(loss)/y.shape[0]
 
+def loss_fdiv_sim(y, y_peer, t, t_peer):
+    prob_acti = -F.nll_loss(y, t, reduce = False)
+    prob_conj = -F.nll_loss(y_peer, t_peer, reduce = False)
+    loss = activation(prob_acti) - conjugate(prob_conj)
+    
+    return torch.sum(loss)/y.shape[0]
+
 
 def loss_spl(epoch, y, t,class_list, ind, noise_or_not,loss_all,loss_div_all):
     if epoch <=20:

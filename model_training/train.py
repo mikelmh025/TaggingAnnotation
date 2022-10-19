@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 
 
-from loss import forward_loss, loss_cross_entropy,loss_spl, f_beta, f_alpha_hard, lq_loss, loss_peer, loss_cores, forward_loss,mse_loss, softmax_cross_entropy_with_softtarget
+from loss import forward_loss, loss_cross_entropy,loss_spl, f_beta, f_alpha_hard, lq_loss, loss_peer, loss_cores, forward_loss,mse_loss, softmax_cross_entropy_with_softtarget,loss_fdiv, loss_fdiv_sim
 from torch.utils.data import RandomSampler
 from variable_optim import VSGD
 
@@ -30,13 +30,14 @@ parser.add_argument('--model', type = str, help = 'cnn,resnet,vgg', default = 'r
 parser.add_argument('--n_epoch', type=int, default=100)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--print_freq', type=int, default=50)
-parser.add_argument('--num_workers', type=int, default=0, help='how many subprocesses to use for data loading')
+parser.add_argument('--num_workers', type=int, default=8, help='how many subprocesses to use for data loading')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 # parser.add_argument('--is_human', action='store_true', default=False)
 parser.add_argument('--device', type=str, help='cuda or cpu ', default='cuda')
 parser.add_argument('--data_root', type=str, help='path to dataset', default='/media/otter/navi_hitl/')
 parser.add_argument('--human_dataset', type=str, help='path to dataset', default='FairFace2.0/')
 parser.add_argument('--debug', action='store_true')
+parser.add_argument('--target_mode', type=str, help='use tag or img(direct) to train', default='tag')
 args = parser.parse_args()
 # parser.add_argument('--model_path', type = str, default = 'cifar_ce.pt')
 
@@ -79,7 +80,7 @@ def accuracy(logit, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-def accuracy_labels(pred,label,label_index_dict):
+def accuracy_labels(args, pred,label,label_index_dict):
     # pred = pred.clone().detach().cpu().numpy()
     # label = label.clone().detach().cpu().numpy()
 
@@ -88,40 +89,54 @@ def accuracy_labels(pred,label,label_index_dict):
     batch_size = pred.shape[0]
 
     correct = {}
+    if args.target_mode == 'tag':
+        for label_type in label_index_dict:
+            pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+            label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+            if label_type in continuous_attr_dict:
+                total_loss += [mse_loss(pred_cur,label_cur)] 
+                diff = torch.abs(pred_cur-label_cur)
+                correct[label_type] = torch.sum(diff<=0.5).item()
+            elif label_type in discrete_attr_dict:
 
-    for label_type in label_index_dict:
-        pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-        label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-        if label_type in continuous_attr_dict:
-            total_loss += [mse_loss(pred_cur,label_cur)] 
-            diff = torch.abs(pred_cur-label_cur)
-            correct[label_type] = torch.sum(diff<=0.5).item()
-        elif label_type in discrete_attr_dict:
-            total_loss += [loss_cross_entropy(pred_cur,label_cur)]
-            pred_max = torch.argmax(pred_cur,dim=1)
-            label_max = torch.argmax(label_cur,dim=1)
-            correct[label_type] = torch.sum(pred_max==label_max).item()
-        elif label_type in multi_class_attr_dict:
-            # TODO: Fix this
-            continue
-            total_loss += [loss_cross_entropy(pred_cur,label_cur)]
-            pred_max = torch.argmax(pred_cur,dim=1)
-            label_max = torch.argmax(label_cur,dim=1)
-            correct[label_type] = torch.sum(pred_max==label_max).item()
+                # loss = loss_fdiv_sim(logits,logits_peer,labels,label_peer)
+                total_loss += [loss_cross_entropy(pred_cur,label_cur)]
+                pred_max = torch.argmax(pred_cur,dim=1)
+                label_max = torch.argmax(label_cur,dim=1)
+                correct[label_type] = torch.sum(pred_max==label_max).item()
+            elif label_type in multi_class_attr_dict:
+                # TODO: Fix this
+                continue
+                total_loss += [loss_cross_entropy(pred_cur,label_cur)]
+                pred_max = torch.argmax(pred_cur,dim=1)
+                label_max = torch.argmax(label_cur,dim=1)
+                correct[label_type] = torch.sum(pred_max==label_max).item()
+    elif args.target_mode == 'img':
+        total_loss += [loss_cross_entropy(pred,label)]
+        pred_max = torch.argmax(pred,dim=1)
+        label_max = torch.argmax(label,dim=1)
+        correct['img'] = torch.sum(pred_max==label_max).item()
 
     total_prec = sum(correct.values())/(batch_size*len(correct))
     total_loss = sum(total_loss)
     return total_loss, correct, total_prec
 
 # Train the Model
-def train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict):
+def train(epoch, train_loader,peer_loader_x,peer_loader_y, model, optimizer, train_dataset,label_index_dict):
     train_total=0
     train_correct=0
 
+    # peer_iter_x = iter(peer_loader_x)
+    # peer_iter_y = iter(peer_loader_y)
     batch_size = train_loader.batch_size
     for i, (images, labels, indexes) in enumerate(train_loader):
         ind=indexes.cpu().numpy().transpose()
         
+        # Load peer data # Peer stuff
+        # x_peer, _, _ = peer_iter_x.next()
+        # _, label_peer, _ = peer_iter_y.next()
+        # x_peer = Variable(x_peer).to(args.device)
+        # label_peer = Variable(label_peer).to(args.device)
 
         images = Variable(images).to(args.device)
         labels = Variable(labels).to(args.device)
@@ -129,7 +144,11 @@ def train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict)
         # Forward + Backward + Optimize
         logits = model(images)
 
-        loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
+        # Peer stuff
+        # logits_peer = model(x_peer)
+        # data_dict = {}
+
+        loss,correct_dict, prec = accuracy_labels(args, logits,labels,label_index_dict)
         # prec, _ = accuracy(logits, labels, topk=(1, 5))
 
         train_total+=1
@@ -165,7 +184,7 @@ def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir
         logits = model(images)
         # outputs = F.softmax(logits, dim=1)
         # _, pred = torch.max(outputs.data, 1)
-        loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
+        loss,correct_dict, prec = accuracy_labels(args,logits,labels,label_index_dict)
         for key in correct_dict:
             if key not in print_report: print_report[key] = []
             print_report[key].append(correct_dict[key])
@@ -211,6 +230,10 @@ def main(args):
 
     batch_size = args.batch_size
     learning_rate = args.lr
+
+    print("Batch size: ", batch_size)
+    print("Learning rate: ", learning_rate)
+    print("target_mode: ", args.target_mode)
     # noise_type_map = {'clean':'clean_label', 'worst': 'worse_label', 'aggre': 'aggre_label', 'rand1': 'random_label1', 'rand2': 'random_label2', 'rand3': 'random_label3', 'clean100': 'clean_label', 'noisy100': 'noisy_label'}
     # args.noise_type = noise_type_map[args.noise_type]
     # load dataset
@@ -232,6 +255,13 @@ def main(args):
         model = resnet_pre(num_classes)
         # model = resnet_256(num_classes)
 
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        model = nn.DataParallel(model)
+        # batch_size=batch_size*torch.cuda.device_count()
+
+    # model.to(device)
+    model.to(args.device)
     # # load pretrained model
     # if args.pretrained:
     #     print('loading pretrained model...')
@@ -254,18 +284,27 @@ def main(args):
                                     num_workers=args.num_workers,
                                     shuffle=True)
 
+    peer_sampler_x = RandomSampler(train_dataset, replacement=True)
+    peer_sampler_y = RandomSampler(train_dataset, replacement=True)
+
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                     batch_size = batch_size,
                                     num_workers=args.num_workers,
                                     shuffle=False)
-    
-    # nn.DataParallel(model)
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        model = nn.DataParallel(model)
 
-    # model.to(device)
-    model.to(args.device)
+    peer_loader_x = torch.utils.data.DataLoader(dataset = train_dataset,
+                                   batch_size = batch_size,
+                                   num_workers=args.num_workers,
+                                   shuffle=False,
+                                   sampler=peer_sampler_x)
+
+    peer_loader_y = torch.utils.data.DataLoader(dataset = train_dataset,
+                                    batch_size = batch_size,
+                                    num_workers=args.num_workers,
+                                    shuffle=False,
+                                    sampler=peer_sampler_y)
+    
+
     # txtfile=save_dir + '/' +  args.loss + args.noise_type + '.txt'
     txtfile=save_dir + '/' +  args.loss + '.txt'
     if os.path.exists(txtfile):
@@ -285,14 +324,14 @@ def main(args):
         # test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
         # adjust_learning_rate(optimizer, epoch, alpha_plan, loss_type=args.loss)
         model.train()
-        train_acc, train_loss = train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict)
+        train_acc, train_loss = train(epoch, train_loader,peer_loader_x,peer_loader_y, model, optimizer, train_dataset,label_index_dict)
         scheduler.step()
 
     # evaluate models
         test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
 
     # save results
-        print('train acc on train images is ', train_acc, "loss is", train_loss)
+        print('train acc on train images is ', round(train_acc,2), "loss is", train_loss.item())
         print('test acc on test images is ', test_acc)
 
         with open(txtfile, "a") as myfile:
