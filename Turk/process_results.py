@@ -146,7 +146,7 @@ for case in result_dict:
 
 print('avg time: ',np.mean(time_list))
 aggre_works = 100*sum(agreement_temp[1:])/sum(agreement_temp)
-print("Match aggrement",agreement_temp, "aggre_works",aggre_works)
+print("Match aggrement",agreement_temp, "aggre_works",round(aggre_works,2))
 
 # TODO: show time distribution
 a=1
