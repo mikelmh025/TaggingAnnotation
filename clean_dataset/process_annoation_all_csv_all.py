@@ -166,7 +166,7 @@ for task in tasks:
     aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
     match_template[aggrement-1] += 1
 aggre_works = 100*sum(match_template[1:])/sum(match_template)
-print("Match aggrement",match_template, "aggre_works",aggre_works)
+print("Match aggrement",match_template, "aggre_works",round(aggre_works,2))
 
 # Tagging annotaiton aggrement 
 for key in tag_template:
@@ -184,7 +184,7 @@ for key in tag_template:
         tag_template[key][aggrement-1] += 1
 for key in tag_template:
     aggre_works = 100*sum(tag_template[key][1:])/sum(tag_template[key])
-    print(key,tag_template[key], "aggre_works",aggre_works)
+    print(key,tag_template[key], "aggre_works",round(aggre_works,2))
 
 
 a=1
