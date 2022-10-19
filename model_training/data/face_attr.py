@@ -34,6 +34,8 @@ import json
 # discrete_attr = ['braid_tf','braid_type','braid_count','braid_position']
 # multi_class_attr = ['top_direction']
 
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
 continuous_attr_dict = {
     'top_curly':4,
     'top_length':6,
@@ -51,6 +53,8 @@ multi_class_attr_dict = {
 }
 class face_attributes(data.Dataset):
     # Root of single types of dataset
+
+    #TODO: init too slow
     def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train=True,debug_num=100):
         self.root = root
         self.train = train
@@ -58,7 +62,13 @@ class face_attributes(data.Dataset):
         self.asset_dir = os.path.join(root, 'asset')
         self.target_mode = target_mode
         
-        self.transform = transforms.Compose([transforms.Resize((256,256)),transforms.ToTensor()]) if transform is None else transform
+        # self.transform = transforms.Compose([transforms.Resize((256,256)),transforms.ToTensor(),normalize]) if transform is None else transform
+        self.transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
         self.debug = debug
 
         target_dir = 'train' if self.train else 'val'
