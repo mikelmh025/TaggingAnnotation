@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 
 
-from loss import forward_loss, loss_cross_entropy,loss_spl, f_beta, f_alpha_hard, lq_loss, loss_peer, loss_cores, forward_loss,mse_loss, softmax_cross_entropy_with_softtarget
+from loss import forward_loss, loss_cross_entropy,loss_spl, f_beta, f_alpha_hard, lq_loss, loss_peer, loss_cores, forward_loss,mse_loss, softmax_cross_entropy_with_softtarget,loss_fdiv, loss_fdiv_sim
 from torch.utils.data import RandomSampler
 from variable_optim import VSGD
 
@@ -30,7 +30,7 @@ parser.add_argument('--model', type = str, help = 'cnn,resnet,vgg', default = 'r
 parser.add_argument('--n_epoch', type=int, default=100)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--print_freq', type=int, default=50)
-parser.add_argument('--num_workers', type=int, default=0, help='how many subprocesses to use for data loading')
+parser.add_argument('--num_workers', type=int, default=8, help='how many subprocesses to use for data loading')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 # parser.add_argument('--is_human', action='store_true', default=False)
 parser.add_argument('--device', type=str, help='cuda or cpu ', default='cuda')
@@ -97,6 +97,8 @@ def accuracy_labels(pred,label,label_index_dict):
             diff = torch.abs(pred_cur-label_cur)
             correct[label_type] = torch.sum(diff<=0.5).item()
         elif label_type in discrete_attr_dict:
+
+            # loss = loss_fdiv_sim(logits,logits_peer,labels,label_peer)
             total_loss += [loss_cross_entropy(pred_cur,label_cur)]
             pred_max = torch.argmax(pred_cur,dim=1)
             label_max = torch.argmax(label_cur,dim=1)
@@ -114,20 +116,31 @@ def accuracy_labels(pred,label,label_index_dict):
     return total_loss, correct, total_prec
 
 # Train the Model
-def train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict):
+def train(epoch, train_loader,peer_loader_x,peer_loader_y, model, optimizer, train_dataset,label_index_dict):
     train_total=0
     train_correct=0
 
+    # peer_iter_x = iter(peer_loader_x)
+    # peer_iter_y = iter(peer_loader_y)
     batch_size = train_loader.batch_size
     for i, (images, labels, indexes) in enumerate(train_loader):
         ind=indexes.cpu().numpy().transpose()
         
+        # Load peer data # Peer stuff
+        # x_peer, _, _ = peer_iter_x.next()
+        # _, label_peer, _ = peer_iter_y.next()
+        # x_peer = Variable(x_peer).to(args.device)
+        # label_peer = Variable(label_peer).to(args.device)
 
         images = Variable(images).to(args.device)
         labels = Variable(labels).to(args.device)
        
         # Forward + Backward + Optimize
         logits = model(images)
+
+        # Peer stuff
+        # logits_peer = model(x_peer)
+        # data_dict = {}
 
         loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
         # prec, _ = accuracy(logits, labels, topk=(1, 5))
@@ -232,6 +245,13 @@ def main(args):
         model = resnet_pre(num_classes)
         # model = resnet_256(num_classes)
 
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        model = nn.DataParallel(model)
+        # batch_size=batch_size*torch.cuda.device_count()
+
+    # model.to(device)
+    model.to(args.device)
     # # load pretrained model
     # if args.pretrained:
     #     print('loading pretrained model...')
@@ -254,18 +274,27 @@ def main(args):
                                     num_workers=args.num_workers,
                                     shuffle=True)
 
+    peer_sampler_x = RandomSampler(train_dataset, replacement=True)
+    peer_sampler_y = RandomSampler(train_dataset, replacement=True)
+
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                     batch_size = batch_size,
                                     num_workers=args.num_workers,
                                     shuffle=False)
-    
-    # nn.DataParallel(model)
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        model = nn.DataParallel(model)
 
-    # model.to(device)
-    model.to(args.device)
+    peer_loader_x = torch.utils.data.DataLoader(dataset = train_dataset,
+                                   batch_size = batch_size,
+                                   num_workers=args.num_workers,
+                                   shuffle=False,
+                                   sampler=peer_sampler_x)
+
+    peer_loader_y = torch.utils.data.DataLoader(dataset = train_dataset,
+                                    batch_size = batch_size,
+                                    num_workers=args.num_workers,
+                                    shuffle=False,
+                                    sampler=peer_sampler_y)
+    
+
     # txtfile=save_dir + '/' +  args.loss + args.noise_type + '.txt'
     txtfile=save_dir + '/' +  args.loss + '.txt'
     if os.path.exists(txtfile):
@@ -285,7 +314,7 @@ def main(args):
         # test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
         # adjust_learning_rate(optimizer, epoch, alpha_plan, loss_type=args.loss)
         model.train()
-        train_acc, train_loss = train(epoch, train_loader, model, optimizer, train_dataset,label_index_dict)
+        train_acc, train_loss = train(epoch, train_loader,peer_loader_x,peer_loader_y, model, optimizer, train_dataset,label_index_dict)
         scheduler.step()
 
     # evaluate models

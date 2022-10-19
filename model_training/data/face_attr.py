@@ -55,9 +55,9 @@ class face_attributes(data.Dataset):
     # Root of single types of dataset
 
     #TODO: init too slow
-    def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train=True,debug_num=100):
+    def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train_mode='train',debug_num=100):
         self.root = root
-        self.train = train
+        self.train_mode = train_mode
         self.human_dir = os.path.join(root, human_dir)
         self.asset_dir = os.path.join(root, 'asset')
         self.target_mode = target_mode
@@ -71,7 +71,7 @@ class face_attributes(data.Dataset):
         ])
         self.debug = debug
 
-        target_dir = 'train' if self.train else 'val'
+        target_dir = self.train_mode
         selected_cases = data_utils.make_image_set(os.path.join(self.human_dir, target_dir)) 
         selected_names = [x.split('/')[-1].split('.')[0] for x in selected_cases]
         if debug: selected_names = selected_names[:debug_num]
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     # playground = 'playground/'
     # class_type='braids_and_balls_train'
 
-    train_dataset = face_attributes(raw_root,human_dir,debug=True,train=True)
+    train_dataset = face_attributes(raw_root,human_dir,debug=True,train_mode='train')
     # test_dataset = face_attributes(raw_root,human_dir,debug=False,train=False)
     # test_dataset  = face_attributes(raw_root,debug=False,class_type='braids_and_balls_test',train=False)
     print(len(train_dataset))
