@@ -11,14 +11,16 @@ root = '/Users/minghaoliu/Desktop/HITL_navi/data/'
 label_image_dir = 'FairFace2.0/' #'v3/'#
 # label_image_dir = 'FairFace2.0/' #'v3/'#
 
+image_subset = 'test'
 
-
-human_names = ['all_results_individual_1','all_results_individual_2','all_results_individual_3']
+human_names = ['all_results_individual_1','all_results_individual_2','all_results_individual_3','all_results_soft']
+# human_names = ['all_results_soft']
 
 asset_json_path = root + 'asset/820_faceattribute_round2_asset_translate_soft.json'
 asset_dir       = root + 'asset/images'
 image_pre_fix = ''
-human_image_dir = root + label_image_dir + 'images'
+human_image_dir = root + label_image_dir + image_subset
+human_image_paths = data_utils.make_im_set(human_image_dir)
 
 show_top = 3
 
@@ -114,23 +116,27 @@ def get_one_matched(human_data,asset_data, human_key):
 
 
 for human_name in tqdm(human_names):
-    save_dir = root + label_image_dir + human_name+'_mapped'
+    save_dir = root + label_image_dir + human_name+'_'+image_subset+'_mapped'
 
     human_json_path = root + label_image_dir + human_name+'.json'#'820_faceattribute_round2_v3_translate_relax.json' 
     with open(human_json_path, 'r') as f:
         human_data = json.load(f)
     human_data = sort_dict(human_data)
     coutner = 0
-    for human_key in tqdm(human_data):
+    for human_image_path in human_image_paths:
+        human_key  = human_image_path.split('/')[-1].split('.')[0]
+    # for human_key in tqdm(human_data):
         coutner += 1
         matched_asset_paths, image_name = get_one_matched(human_data,asset_data, human_key)
         
         if save_match_img:
+            '''Concatenated version'''
             # im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
             # cont_save_dir = str(save_dir)+'_concatenate'
             # os.makedirs(cont_save_dir, exist_ok=True)
             # cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
 
+            '''Individual save'''
             match_save_dir = str(save_dir)+'_match'
             os.makedirs(match_save_dir, exist_ok=True)
             paired_image = cv2.imread(matched_asset_paths[1])

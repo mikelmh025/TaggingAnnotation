@@ -130,6 +130,14 @@ def most_frequent(List):
 
 def concat_list_image(matched_asset_paths,matched_titles=None):
     assert len(matched_asset_paths) > 0, "No matched asset found"
+
+    for idx, path in enumerate(matched_asset_paths):
+        if os.path.exists(path+'.png'):
+            matched_asset_paths[idx] = path+'.png'
+        elif os.path.exists(path+'.jpg'):
+            matched_asset_paths[idx] = path+'.jpg'
+        else:
+            matched_asset_paths[idx] = path
     #use cv2
     imgs = [cv2.imread(str(asset_path)) for idx, asset_path in enumerate(matched_asset_paths)]
     
@@ -154,6 +162,9 @@ def concat_list_image(matched_asset_paths,matched_titles=None):
             im_concat = np.concatenate((im_concat, img), axis=1)
     return im_concat
 
+def read_img(img_path):
+    img = cv2.imread(img_path)
+    return img
 
 from typing import Optional, Tuple
 

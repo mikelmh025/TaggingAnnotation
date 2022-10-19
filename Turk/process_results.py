@@ -11,7 +11,7 @@ from itertools import groupby
 
 
 # url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/test/'
-save_match_img = False
+save_match_img = True
 
 human_img_dir = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/test'
 asset_img_dir = '/Users/minghaoliu/Desktop/HITL_navi/data/asset/images'
@@ -43,7 +43,7 @@ for index, row in df.iterrows():
     output_list   = [eval(row[key]) for key in output_names]
 
     for num_task in range(len(input_names)):
-        input_name = input_urls[num_task].split('/')[-1]
+        input_name = input_urls[num_task].split('/')[-1].split('.')[0]
         output_label = output_list[num_task]
         for key in output_label:
             output_label[key] = [output_label[key]]
@@ -70,7 +70,7 @@ asset_sample_json = json.load(open(asset_sample_json_path))
 algo = search_algorithm()
 
 def search_best_match(human_path, human_json, asset_json, algo,top_k=5):
-    human_name = human_path.split('/')[-1]
+    human_name = human_path.split('/')[-1].split('.')[0]
     human_label = human_json[human_name.replace('.jpg','.png')]
 
     score_dict = {}
@@ -141,15 +141,20 @@ for case in result_dict:
         im_concat2 = data_utils.concat_list_image([input_path]+top_k_paths, [human_title]+top_k_title)
 
         im_concat = data_utils.vertical_cat([im_concat1,im_concat2])
-        cv2.imwrite(save_image_root+case,im_concat)
+        cv2.imwrite(save_image_root+case+'.jpg',im_concat)
 
+        # save_individual_img
+        for idx, path in enumerate(matched_paths):
+            img = data_utils.read_img(path)
+            save_dir_ =  save_image_root+matched_tile[idx]
+            if not os.path.exists(save_dir_): os.makedirs(save_dir_)
 
+            save_path_ = save_dir_+'/'+case+'_'+path.split('/')[-1]
+            cv2.imwrite(save_path_,img)
+
+# show time distribution
+# show disagreement level 
 print('avg time: ',np.mean(time_list))
 aggre_works = 100*sum(agreement_temp[1:])/sum(agreement_temp)
 print("Match aggrement",agreement_temp, "aggre_works",round(aggre_works,2))
 
-# TODO: show time distribution
-a=1
-
-
-# TODO: show disagreement level 
