@@ -1,6 +1,7 @@
 {
   "name": "tagging-app",
   "version": "0.1.0",
+  "homepage": "http://mikelmh025.github.io/taggingAnnotation",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^1.8.5",
