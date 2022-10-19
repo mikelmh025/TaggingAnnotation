@@ -83,6 +83,7 @@ class face_attributes(data.Dataset):
 
         self.source_img_paths = data_utils.make_image_set(self.source_img_dir)
         self.target_img_paths = data_utils.make_image_set(self.target_img_dir)
+        self.asset_img_paths  = data_utils.make_image_set(self.asset_img_dir)
 
         self.source_img_paths = self.select_case(self.source_img_paths, selected_names)
         self.target_img_paths = self.select_case(self.target_img_paths, selected_names) # Taske time in train init
@@ -94,6 +95,8 @@ class face_attributes(data.Dataset):
         # Get mathced image pairs names
         self.match_asset = [ path.split('/')[-1].split('.')[0].split('_')[-1] for path in self.target_img_paths]
         
+        self.asset_to_one_hot()
+
         # load soft label from json file to dict
         self.asset_label_dict = json.load(open(os.path.join(self.asset_dir, 'soft_label.json')))
         self.source_img_label_dict = json.load(open(os.path.join(self.human_dir, 'soft_label.json')))
@@ -117,10 +120,26 @@ class face_attributes(data.Dataset):
         #     self.match_asset = self.match_asset[int(len(self.match_asset)*0.8):]
 
         # TODO Train/test
-        for key in self.source_img_label_cant_dict:
-            self.num_classes = len(self.source_img_label_cant_dict[key])
-            break
+        if self.target_mode =='tag':
+            for key in self.source_img_label_cant_dict:
+                self.num_classes = len(self.source_img_label_cant_dict[key])
+                break
+        elif self.target_mode =='img':
+            self.num_classes = len(self.asset_img_paths)
 
+    def asset_to_one_hot(self):
+        self.all_asset_names = [path.split('/')[-1].split('.')[0] for path in self.asset_img_paths]
+
+        self.match_asset_one_hot = []
+        for i,asset_name in enumerate(self.match_asset):
+            one_hot = [0]*len(self.all_asset_names)
+            one_hot[self.all_asset_names.index(asset_name)] = 1
+            # one_hot to np array
+            self.match_asset_one_hot.append(np.array(one_hot))
+
+        a=1
+
+        
     def __len__(self):
         return len(self.source_img_paths)
         
@@ -133,9 +152,10 @@ class face_attributes(data.Dataset):
         if self.target_mode == 'tag':
             label = self.source_img_label_cant_dict[source_img_name]
             label = torch.FloatTensor(label)
-        elif label.target_mode == 'img':
-            label = self.match_asset[index] # TODO convert to one hot
-            a=1
+        elif self.target_mode == 'img':
+            # label = self.match_asset[index] # TODO convert to one hot
+            label = self.match_asset_one_hot[index]
+            label = torch.FloatTensor(label)
         
         return source_img, label, index
 
@@ -240,14 +260,17 @@ class face_attributes(data.Dataset):
 
         return out_dict
 
+
+
 if __name__ == '__main__':
-    raw_root = '/home/mikelmh025/Documents/data/navi_data/'
+    raw_root = '/media/otter/navi_hitl/'
     human_dir = 'FairFace2.0/'
 
     # playground = 'playground/'
     # class_type='braids_and_balls_train'
 
     train_dataset = face_attributes(raw_root,human_dir,debug=True,train_mode='train')
+    
     # test_dataset = face_attributes(raw_root,human_dir,debug=False,train=False)
     # test_dataset  = face_attributes(raw_root,debug=False,class_type='braids_and_balls_test',train=False)
     print(len(train_dataset))

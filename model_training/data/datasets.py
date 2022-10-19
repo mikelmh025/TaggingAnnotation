@@ -119,8 +119,8 @@ def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
         root = args.data_root
         human_dir = args.human_dataset
         debug = args.debug
-        train_dataset = face_attributes(root,human_dir,debug=debug,train_mode='train')
-        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='val')
+        train_dataset = face_attributes(root,human_dir,debug=debug,train_mode='train',target_mode=args.target_mode)
+        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='val',target_mode=args.target_mode)
 
         num_classes = train_dataset.num_classes
         num_training_samples = train_dataset.__len__()
@@ -134,7 +134,7 @@ def input_dataset_face_attr_test(args, dataset,root=None,human_dir=None):
         root = args.data_root
         human_dir = args.human_dataset
         debug = args.debug
-        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='test')
+        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='test',target_mode=args.target_mode)
 
         num_classes = test_dataset.num_classes
         num_training_samples = test_dataset.__len__()

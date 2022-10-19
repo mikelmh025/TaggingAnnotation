@@ -118,6 +118,13 @@ def param2match(index, pred,label_index_dict,source_img_paths):
         os.makedirs(cont_save_dir, exist_ok=True)
         cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
 
+        for i in range(args.get_top_k):
+            single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+            os.makedirs(single_match_path, exist_ok=True)
+            matched_name = matched_paths[i].split('/')[-1].split('.')[0]
+            image_name_ = image_name.split('.')[0]
+            save_name_ = image_name_+'_'+matched_name+'.jpg'
+            cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
     return all_scores
 
 def test(args, model, test_dataset,label_index_dict):

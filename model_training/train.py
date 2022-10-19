@@ -37,6 +37,7 @@ parser.add_argument('--device', type=str, help='cuda or cpu ', default='cuda')
 parser.add_argument('--data_root', type=str, help='path to dataset', default='/media/otter/navi_hitl/')
 parser.add_argument('--human_dataset', type=str, help='path to dataset', default='FairFace2.0/')
 parser.add_argument('--debug', action='store_true')
+parser.add_argument('--target_mode', type=str, help='use tag or img(direct) to train', default='tag')
 args = parser.parse_args()
 # parser.add_argument('--model_path', type = str, default = 'cifar_ce.pt')
 
@@ -79,7 +80,7 @@ def accuracy(logit, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-def accuracy_labels(pred,label,label_index_dict):
+def accuracy_labels(args, pred,label,label_index_dict):
     # pred = pred.clone().detach().cpu().numpy()
     # label = label.clone().detach().cpu().numpy()
 
@@ -88,28 +89,33 @@ def accuracy_labels(pred,label,label_index_dict):
     batch_size = pred.shape[0]
 
     correct = {}
+    if args.target_mode == 'tag':
+        for label_type in label_index_dict:
+            pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+            label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+            if label_type in continuous_attr_dict:
+                total_loss += [mse_loss(pred_cur,label_cur)] 
+                diff = torch.abs(pred_cur-label_cur)
+                correct[label_type] = torch.sum(diff<=0.5).item()
+            elif label_type in discrete_attr_dict:
 
-    for label_type in label_index_dict:
-        pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-        label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-        if label_type in continuous_attr_dict:
-            total_loss += [mse_loss(pred_cur,label_cur)] 
-            diff = torch.abs(pred_cur-label_cur)
-            correct[label_type] = torch.sum(diff<=0.5).item()
-        elif label_type in discrete_attr_dict:
-
-            # loss = loss_fdiv_sim(logits,logits_peer,labels,label_peer)
-            total_loss += [loss_cross_entropy(pred_cur,label_cur)]
-            pred_max = torch.argmax(pred_cur,dim=1)
-            label_max = torch.argmax(label_cur,dim=1)
-            correct[label_type] = torch.sum(pred_max==label_max).item()
-        elif label_type in multi_class_attr_dict:
-            # TODO: Fix this
-            continue
-            total_loss += [loss_cross_entropy(pred_cur,label_cur)]
-            pred_max = torch.argmax(pred_cur,dim=1)
-            label_max = torch.argmax(label_cur,dim=1)
-            correct[label_type] = torch.sum(pred_max==label_max).item()
+                # loss = loss_fdiv_sim(logits,logits_peer,labels,label_peer)
+                total_loss += [loss_cross_entropy(pred_cur,label_cur)]
+                pred_max = torch.argmax(pred_cur,dim=1)
+                label_max = torch.argmax(label_cur,dim=1)
+                correct[label_type] = torch.sum(pred_max==label_max).item()
+            elif label_type in multi_class_attr_dict:
+                # TODO: Fix this
+                continue
+                total_loss += [loss_cross_entropy(pred_cur,label_cur)]
+                pred_max = torch.argmax(pred_cur,dim=1)
+                label_max = torch.argmax(label_cur,dim=1)
+                correct[label_type] = torch.sum(pred_max==label_max).item()
+    elif args.target_mode == 'img':
+        total_loss += [loss_cross_entropy(pred,label)]
+        pred_max = torch.argmax(pred,dim=1)
+        label_max = torch.argmax(label,dim=1)
+        correct['img'] = torch.sum(pred_max==label_max).item()
 
     total_prec = sum(correct.values())/(batch_size*len(correct))
     total_loss = sum(total_loss)
@@ -142,7 +148,7 @@ def train(epoch, train_loader,peer_loader_x,peer_loader_y, model, optimizer, tra
         # logits_peer = model(x_peer)
         # data_dict = {}
 
-        loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
+        loss,correct_dict, prec = accuracy_labels(args, logits,labels,label_index_dict)
         # prec, _ = accuracy(logits, labels, topk=(1, 5))
 
         train_total+=1
@@ -178,7 +184,7 @@ def evaluate(test_loader,model,save=False,epoch=0,best_acc_=0,args=None,save_dir
         logits = model(images)
         # outputs = F.softmax(logits, dim=1)
         # _, pred = torch.max(outputs.data, 1)
-        loss,correct_dict, prec = accuracy_labels(logits,labels,label_index_dict)
+        loss,correct_dict, prec = accuracy_labels(args,logits,labels,label_index_dict)
         for key in correct_dict:
             if key not in print_report: print_report[key] = []
             print_report[key].append(correct_dict[key])
@@ -224,6 +230,10 @@ def main(args):
 
     batch_size = args.batch_size
     learning_rate = args.lr
+
+    print("Batch size: ", batch_size)
+    print("Learning rate: ", learning_rate)
+    print("target_mode: ", args.target_mode)
     # noise_type_map = {'clean':'clean_label', 'worst': 'worse_label', 'aggre': 'aggre_label', 'rand1': 'random_label1', 'rand2': 'random_label2', 'rand3': 'random_label3', 'clean100': 'clean_label', 'noisy100': 'noisy_label'}
     # args.noise_type = noise_type_map[args.noise_type]
     # load dataset
@@ -321,7 +331,7 @@ def main(args):
         test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
 
     # save results
-        print('train acc on train images is ', train_acc, "loss is", train_loss)
+        print('train acc on train images is ', round(train_acc,2), "loss is", train_loss.item())
         print('test acc on test images is ', test_acc)
 
         with open(txtfile, "a") as myfile:

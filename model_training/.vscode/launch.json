@@ -24,6 +24,7 @@
                 "--loss=mse",
                 "--model=resnet",
                 "--batch_size=16",
+                "--get_top_k=5"
             ],
             "console": "integratedTerminal"
         },
@@ -41,6 +42,7 @@
                 "--lr=0.00001",
                 "--batch_size=16",
                 "--debug",
+                "--target_mode=img"
 
             ],
             "console": "integratedTerminal"
