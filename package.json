@@ -1,6 +1,7 @@
 {
   "name": "tagging-app",
   "version": "0.1.0",
+  "homepage": "https://mikelmh025.github.io/taggingAnnotation/",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^1.8.5",
@@ -17,7 +18,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -38,6 +41,7 @@
     ]
   },
   "devDependencies": {
+    "gh-pages": "^4.0.0",
     "json-loader": "^0.5.7"
   }
 }
