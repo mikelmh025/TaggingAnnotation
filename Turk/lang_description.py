@@ -169,31 +169,37 @@ data_dict = {
         'Yes_No_Braid': {
             'description': 'The person used some threads, hair band to tie up his hair.',
             'url':'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/310_yesNo.png',
+            
             'option1': {
+                'title': 'No',
+                'description': 'They are not wearing a braid.',
+                'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/311_no.jpg',
+            },
+            'option2': {
                 'title': 'Yes',
                 'description': 'They are wearing a braid.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/311_yes.png',
             },
-            'option2': {
-                'title': 'No',
-                'description': 'They are not wearing a braid.',
-                'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/311_no.jpg',
-            }
         },
         'Count':{
             'description': 'How many braids does the person have?',
             'url':'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/320_count.png',
             'option1': {
+                'title': 'No braid',
+                'description': 'They have No braid.',
+                'url':''
+            },
+            'option2': {
                 'title': 'Single',
                 'description': 'There is only one braid. For example ponytail.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/321_single.png',
             },
-            'option2': {
+            'option3': {
                 'title': 'Double',
                 'description': 'There are two braids. For example double bun.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/322_double.jpeg',
             },
-            'option3': {
+            'option4': {
                 'title': 'Multiple',
                 'description': 'There are more than two braids. For example Dreadlock.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/323_multiple.png',
@@ -203,11 +209,16 @@ data_dict = {
             'description': 'The braid position is high or low.',
             'url':'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/330_position.jpeg',
             'option1': {
+                'title': 'No braid',
+                'description': 'They have No braid.',
+                'url':''
+            },
+            'option2': {
                 'title': 'Low',
                 'description': 'They have the briad at the lower side of his head.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/331_low.jpeg',
             },
-            'option2': {
+            'option3': {
                 'title': 'High',
                 'description': 'They have the briad at the upper side of his head.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/332_high.png',
@@ -217,21 +228,26 @@ data_dict = {
             'description': 'What kind of braid is worn?',
             'url':'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/340_style.png',
             'option1': {
+                'title': 'No braid',
+                'description': 'They have No braid.',
+                'url':''
+            },
+            'option2': {
                 'title': 'Ponytail',
                 'description': 'Hair tied at the back of the head, causing it to hang down like a tail of pony.',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/341_ponytail.png',
             },
-            'option2': {
+            'option3': {
                 'title': 'Plaited',
                 'description': 'One or more braids, plaited or interlaced. ',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/342_plaited.png',
             },
-            'option3': {
+            'option4': {
                 'title': 'Deadlock',
                 'description': 'A narrow ropelike strand of hair formed by matting, braiding, or twisting ',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/343_deadlock.png',
             },
-            'option4': {
+            'option5': {
                 'title': 'Bun',
                 'description': 'Hair wrapped in a circular coil around itself. ',
                 'url': 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/icon/344_bun.png',

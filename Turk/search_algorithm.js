@@ -2,7 +2,7 @@
 // javascript version of search_algorithm.py
 
 function search(selected_dict){
-    selected_dict = translation_4_search(selected_dict);
+    // selected_dict = translation_4_search(selected_dict);
 
     var a=1
     const distance_score_type = {
@@ -9804,6 +9804,7 @@ function search(selected_dict){
 
     // sort match_score by value return a dict
     // var sorted_match_score = Object.keys(match_score).sort(function(a,b){return match_score[a]-match_score[b]})
+    const url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/bitmoji_asset/'
     var dict = match_score
     var items = Object.keys(dict).map(function(key) {
         return [key, dict[key]];
@@ -9840,11 +9841,6 @@ const now_select = {
         'Count': 'option3',
         'Position': 'option1',
     }
-}
-
-function translation_4_search(){
-
-    
 }
 
 var a = search(now_select)

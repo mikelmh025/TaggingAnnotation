@@ -9762,7 +9762,7 @@ function search(selected_dict){
     for (var region in selected_dict) {
         var region_dict = selected_dict[region];
         for (var attribute in region_dict) {
-            var attr = parseInt(region_dict[attribute].replace('option',''));
+            var attr = parseInt(region_dict[attribute].replace('option','')) -1; // Turk page option 1+, but search 0+
 
             var attri_mapped_name = mapper[region] + "_" + mapper[attribute];
 
@@ -9816,6 +9816,7 @@ function search(selected_dict){
         
     //  # Mike this part
     // const match_list = ['url1','url2','url3']
+    console.log('match_list',match_list[0][0])
     return match_list
 }
 
@@ -9834,20 +9835,57 @@ const all_select = {
       'Count': 'option3',
       'Position': 'option1',
     },
-   }
-    
-const now_select = {
     'Braid': {
         'Count': 'option3',
         'Position': 'option1',
     }
 }
 
-function translation_4_search(){
-
     
-}
 
+
+var now_select = {
+    'Top and front side' : {
+        'Length': 'option1'
+      }
+}
+    
+console.log('option1')
 var a = search(now_select)
 
-var b =1
+
+now_select = {
+    'Top and front side' : {
+        'Length': 'option2'
+      }
+}
+    
+console.log('option2')
+var a = search(now_select)
+
+now_select = {
+    'Top and front side' : {
+        'Length': 'option3'
+        }
+}
+
+console.log('option3')
+var a = search(now_select)
+
+now_select = {
+    'Top and front side' : {
+        'Length': 'option4'
+        }
+}
+
+console.log('option4')
+var a = search(now_select)
+
+now_select = {
+    'Top and front side' : {
+        'Length': 'option5'
+        }
+}
+
+console.log('option5')
+var a = search(now_select)
