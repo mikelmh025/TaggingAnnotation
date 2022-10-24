@@ -158,27 +158,54 @@ def get_one_matched(human_data,asset_data, human_key):
 
     return matched_asset_paths, image_name
 
-turker1_soft_labels = {}
 for key in all_soft_labels:
-    turker1_soft_labels[key] = all_soft_labels[key][0]
+    if len(all_soft_labels[key])<3:
+        print(key)
 
-for human_key in turker1_soft_labels:
-    if len(turker1_soft_labels[human_key]) == 0:
-        continue
-    matched_asset_paths, image_name = get_one_matched(turker1_soft_labels,asset_data,human_key)
 
-    if save_match_img:
-        '''Concatenated version'''
-        matched_titles = ['']*len(matched_asset_paths)
-        im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
-        cont_save_dir = str(save_dir)+'_concatenate'
-        os.makedirs(cont_save_dir, exist_ok=True)
-        cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+# Combined dict of votes in to one soft dict
+def combnine_dict(data_dict):
+    result = None
 
-        '''Individual save'''
-        match_save_dir = str(save_dir)+'_match'
-        os.makedirs(match_save_dir, exist_ok=True)
-        paired_image = cv2.imread(matched_asset_paths[1])
-        paired_image_name = matched_asset_paths[1].split('/')[-1].split('.')[0]
-        cv2.imwrite(str(match_save_dir+'/'+image_name+'_'+paired_image_name+'.jpg'), paired_image)
+    for key in data_dict:
+        if result ==None:
+            result = data_dict[key]
+        else:
+            for attr in data_dict[key]:
+                for opt in data_dict[key][attr]:
+                    if opt not in result[attr]:
+                        result[attr][opt] = 1
+                    else:
+                        result[attr][opt] += 1
+    return result
+
+for i in range(4):
+
+    turker_soft_labels_ = {}
+    for key in all_soft_labels:
+        try:    
+            turker_soft_labels_[key] = all_soft_labels[key][i]
+        except:
+            turker_soft_labels_[key] = combnine_dict(all_soft_labels[key])  # if out of index use aggregated result
+
+
+    for human_key in turker_soft_labels_:
+        if len(turker_soft_labels_[human_key]) == 0:
+            continue
+        matched_asset_paths, image_name = get_one_matched(turker_soft_labels_,asset_data,human_key)
+
+        if save_match_img:
+            '''Concatenated version'''
+            matched_titles = ['']*len(matched_asset_paths)
+            im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
+            cont_save_dir = str(save_dir)+'_concatenate'+str(i+1)
+            os.makedirs(cont_save_dir, exist_ok=True)
+            cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+
+            '''Individual save'''
+            match_save_dir = str(save_dir)+'_match'+str(i+1)
+            os.makedirs(match_save_dir, exist_ok=True)
+            paired_image = cv2.imread(matched_asset_paths[1])
+            paired_image_name = matched_asset_paths[1].split('/')[-1].split('.')[0]
+            cv2.imwrite(str(match_save_dir+'/'+image_name+'_'+paired_image_name+'.jpg'), paired_image)
     a=1
