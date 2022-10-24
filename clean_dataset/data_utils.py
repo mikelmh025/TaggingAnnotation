@@ -32,13 +32,21 @@ JSON_EXTENSIONS = [
 def is_json_file(filename):
     return any(filename.endswith(extension) for extension in JSON_EXTENSIONS)
 
+CSV_EXTENSIONS = [
+    '.csv', '.CSV'
+]
+
+def is_csv_file(filename):
+    return any(filename.endswith(extension) for extension in CSV_EXTENSIONS)
+
+
 # Only one level of file
-def make_json_set(dir):
+def make_csv_set(dir):
     images = []
     assert os.path.isdir(dir), '%s is not a valid directory' % dir
     for root, _, fnames in sorted(os.walk(dir)):
         for fname in fnames:
-            if is_json_file(fname):
+            if is_csv_file(fname):
                 path = os.path.join(root, fname)
                 images.append(path)
         break
