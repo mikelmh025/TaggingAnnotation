@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Test</title>
+
+    <style>
+        *{
+            box-sizing: border-box;
+        }
+        .container{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 5rem;
+        }
+        img{
+            height: 25rem;
+            width: auto;
+            margin: 0 8px;
+            padding: 1rem;
+        }
+
+        button{
+            width: 10rem;
+            margin-top: 4rem;
+            padding: 0.75rem 3rem;
+            border: none;
+            background-color: #78A55A;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            color: white;
+            margin: 2rem 2rem;
+        }
+
+        .opt0{
+            background-color: #c80000b4;
+        }
+        .opt0:hover{
+            background-color: #df2525;
+        }
+        .opt1:hover{
+            background-color: #00a000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="imgGroup">
+            <img src="${image_person}" alt="person" class="personImg" />
+            <img src="${image_cartoon}" alt="cartoon" class="cartoonImg" />
+        </div>
+        <h2>Is the cartoon's hair style similar with the real person's ?</h2>
+        <div class="buttonGroup">
+            <button class="opt0">No</button>
+            <button class="opt1">Yes</button>
+        </div>
+    </div>
+
+    <script type='text/javascript' src='https://s3.amazonaws.com/mturk-public/externalHIT_v1.js'></script>
+    <script>
+        document.querySelector('.buttonGroup').addEventListener('click', () => {
+            const result = event.target.className.replace('opt', '');
+            console.log("result",result)
+            if (result && result !== '') {
+                const urlParams = new URLSearchParams(window.location.search)
+
+                // create the form element and point it to the correct endpoint
+                const form = document.createElement('form')
+
+                console.log('turkSubmitTo: ', urlParams.get('turkSubmitTo'))
+
+                form.action = (new URL('mturk/externalSubmit', urlParams.get('turkSubmitTo'))).href
+                // form.action = (new URL('mturk/externalSubmit', 'https://www.mturk.com/')).href
+                form.method = 'post'
+
+                // attach the assignmentId
+                const inputAssignmentId = document.createElement('input')
+                inputAssignmentId.name = 'assignmentId'
+                inputAssignmentId.value = urlParams.get('assignmentId')
+                inputAssignmentId.hidden = true
+                form.appendChild(inputAssignmentId)
+
+                // Attach the data I want to send back
+                const inputCoordinates = document.createElement('input')
+                inputCoordinates.name = 'result'
+                inputCoordinates.value = JSON.stringify(result);
+                inputCoordinates.hidden = true
+                form.appendChild(inputCoordinates)
+
+                // attach the form to the HTML document and trigger submission
+                document.body.appendChild(form)
+                form.submit()
+            }
+        })
+
+    </script>
+</body>
+
+</html>
