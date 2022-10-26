@@ -5,6 +5,9 @@ import cv2
 from search_algo  import search_algorithm 
 from tqdm import tqdm
 import csv
+import numpy as np
+import copy
+
 
 save_match_img = True
 
@@ -16,7 +19,7 @@ image_subset = 'test'
 
 attri_need = ['Input.image_url1','Answer.results']
 # human_names = ['all_results_soft']
-show_top = 3
+top_k = 4
 asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/'+ 'asset/820_faceattribute_round2_asset_translate_soft.json'
 asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/' + 'asset/images'
 human_image_dir = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/test'
@@ -74,19 +77,22 @@ for row_idx, row in enumerate(rows):
     if input_img not in data_dict:
         data_dict[input_img]= []
     data_dict[input_img] += [processed_dict]
-a=1
 
-#TODO: add time analysis 
+#TODO: add entropy analysis 
 
 all_soft_labels = {}
+all_time_dict   = {}
+
 for case in data_dict:
     if case not in all_soft_labels:
         all_soft_labels[case] = {}
+        all_time_dict[case]   = {}
 
     for worker_idx, worker_ in enumerate(data_dict[case]):
 
 
         soft_label = {}
+        time_dict = {}
         for key in worker_:
             region = key.lower()
             if 'Top' in key: 
@@ -105,19 +111,17 @@ for case in data_dict:
                 combined_key = region + '_' + attr
                 selected = str(int(worker_[key][item]['option'].replace('option','')) - 1)
                 soft_label[combined_key] = {selected:1}
+                time_dict[combined_key] = worker_[key][item]['time']
         
         all_soft_labels[case][worker_idx] = soft_label
+        all_time_dict[case][worker_idx] = time_dict
 
 # sort dict by key
 all_soft_labels = {k: v for k, v in sorted(all_soft_labels.items(), key=lambda item: item[0])}
-a=1
-                
+all_time_dict   = {k: v for k, v in sorted(all_time_dict.items(), key=lambda item: item[0])}
 
 
-        # vote_dict = data_dict[case][worker_]
-        # a=1
-
-def get_one_matched(human_data,asset_data, human_key):
+def get_one_matched(human_data,asset_data, human_key,top_k=5):
     image_name = human_key.split('.')[0]
 
     dis_list = []
@@ -142,13 +146,15 @@ def get_one_matched(human_data,asset_data, human_key):
 
 
     matched_asset_paths, matched_titles = [huamn_path], ['input']
+    matched_scores = [-1]
 
 
     # Each level show 2
     for idx, level in enumerate(result_score_dict):
-        matched_asset_paths  += [asset_dir+'/'+item[0] for item in result_score_dict[float(level)][:4]]
-        matched_titles       += [str(round(item[1]['total'],2)) for item in result_score_dict[float(level)][:4]]
-        if len(matched_asset_paths) >= show_top+1: break
+        matched_asset_paths  += [asset_dir+'/'+item[0] for item in result_score_dict[float(level)]]
+        matched_scores       += [float(level) for item in result_score_dict[float(level)]]
+        matched_titles       += [str(round(item[1]['total'],2)) for item in result_score_dict[float(level)]]
+        if len(matched_asset_paths) >= top_k+1: break
 
 
     
@@ -156,10 +162,12 @@ def get_one_matched(human_data,asset_data, human_key):
 
     matched_asset_paths = [ data_utils.fix_image_subscript(path.replace('0906_fair_face_clean_','').replace('0825_fair_face_clean_','').replace('.png','.jpg')) for path in matched_asset_paths]
 
-    return matched_asset_paths, image_name
+    return matched_asset_paths, image_name, matched_scores
 
+
+# Check if Turk collection is completed
 for key in all_soft_labels:
-    if len(all_soft_labels[key])<3:
+    if len(all_soft_labels[key])!=3:
         print(key)
 
 
@@ -169,7 +177,7 @@ def combnine_dict(data_dict):
 
     for key in data_dict:
         if result ==None:
-            result = data_dict[key]
+            result = copy.deepcopy(data_dict[key])
         else:
             for attr in data_dict[key]:
                 for opt in data_dict[key][attr]:
@@ -179,7 +187,13 @@ def combnine_dict(data_dict):
                         result[attr][opt] += 1
     return result
 
+
+
+matched_dict = {}
 for i in range(4):
+    if not save_match_img: 
+        print("Skip saving match images")
+        break 
 
     turker_soft_labels_ = {}
     for key in all_soft_labels:
@@ -188,24 +202,89 @@ for i in range(4):
         except:
             turker_soft_labels_[key] = combnine_dict(all_soft_labels[key])  # if out of index use aggregated result
 
+    matched_dict[i] = {}
 
     for human_key in turker_soft_labels_:
         if len(turker_soft_labels_[human_key]) == 0:
             continue
-        matched_asset_paths, image_name = get_one_matched(turker_soft_labels_,asset_data,human_key)
+        matched_asset_paths, image_name, matched_scores = get_one_matched(turker_soft_labels_,asset_data,human_key,top_k=top_k)
+        matched_dict[i][image_name] = matched_asset_paths
+        # # break
+        # continue    
 
-        if save_match_img:
-            '''Concatenated version'''
-            matched_titles = ['']*len(matched_asset_paths)
-            im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
-            cont_save_dir = str(save_dir)+'_concatenate'+str(i+1)
-            os.makedirs(cont_save_dir, exist_ok=True)
-            cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+        '''Concatenated version'''
+        matched_titles = ['']*len(matched_asset_paths)
+        im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
+        cont_save_dir = str(save_dir)+'_concatenate'+str(i+1)
+        os.makedirs(cont_save_dir, exist_ok=True)
+        cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
 
-            '''Individual save'''
-            match_save_dir = str(save_dir)+'_match'+str(i+1)
-            os.makedirs(match_save_dir, exist_ok=True)
-            paired_image = cv2.imread(matched_asset_paths[1])
-            paired_image_name = matched_asset_paths[1].split('/')[-1].split('.')[0]
-            cv2.imwrite(str(match_save_dir+'/'+image_name+'_'+paired_image_name+'.jpg'), paired_image)
+        '''Individual save'''
+        match_save_dir = str(save_dir)+'_match'+str(i+1)
+        os.makedirs(match_save_dir, exist_ok=True)
+        paired_image = cv2.imread(matched_asset_paths[1])
+        paired_image_name = matched_asset_paths[1].split('/')[-1].split('.')[0]
+        cv2.imwrite(str(match_save_dir+'/'+image_name+'_'+paired_image_name+'.jpg'), paired_image)
     a=1
+
+# Time analysis
+Time_template  = {}
+for case in all_time_dict:
+    for worker_id in all_time_dict[case]:
+        for attr in all_time_dict[case][worker_id]:
+            if attr not in Time_template:
+                Time_template[attr] = []
+            Time_template[attr].append(all_time_dict[case][worker_id][attr]/1000)
+
+total_time = 0
+for attr in Time_template:
+    time = round(np.mean(Time_template[attr]),2)
+    total_time += time
+    print(attr, time)
+
+print('Total time', total_time)
+
+a= 1
+
+# Conduct entropy analysis (Tags)
+entropy_templates = {'overall':[0]*len(all_soft_labels[key])}
+for key in all_soft_labels:
+    combined_soft_labels = combnine_dict(all_soft_labels[key])  # if out of index use aggregated result
+    for attr in combined_soft_labels:
+        if attr not in entropy_templates:
+            entropy_templates[attr] = [0]*len(all_soft_labels[key])
+        
+        # get  max value in combined_soft_labels[attr]
+        max_value = 0
+        for opt in combined_soft_labels[attr]:
+            max_value = combined_soft_labels[attr][opt] if combined_soft_labels[attr][opt] > max_value else max_value
+        entropy_templates[attr][max_value-1] += 1
+        entropy_templates['overall'][max_value-1] += 1
+
+for key in entropy_templates:
+    aggre_works = 100*sum(entropy_templates[key][1:])/sum(entropy_templates[key])
+    print("Match aggrement",entropy_templates[key], "aggre_works",round(aggre_works,2))
+aggre_works = 100*sum(entropy_templates['overall'][1:])/sum(entropy_templates['overall'])
+print("Overall Match aggrement",entropy_templates['overall'], "aggre_works",round(aggre_works,2))
+a=1
+
+# Conduct entropy analysis (Final results)
+entropy_final_templates = [0]*3
+for case in matched_dict[0]:
+    cur_matched = []
+    for i in range(3):
+        cur_matched += matched_dict[i][case][1:]  # only aggregate top 1
+    unique, counts = np.unique(cur_matched, return_counts=True)
+    match_count      = np.asarray((unique, counts)).T.tolist()
+    match_count.sort(key=lambda x: x[1], reverse=True)
+    max_count        = int(match_count[0][1])
+
+    entropy_final_templates[max_count-1] += 1
+    a=1
+
+aggre_works = 100*sum(entropy_final_templates[1:])/sum(entropy_final_templates)
+print("Final Match aggrement",entropy_final_templates, "aggre_works",round(aggre_works,2))
+a=1
+
+
+    

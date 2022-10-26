@@ -5,13 +5,14 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Test</title>
+    <title>Subjective Test</title>
 
     <style>
-        *{
+        * {
             box-sizing: border-box;
         }
-        .container{
+
+        .container {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -19,14 +20,15 @@
             width: 100%;
             padding: 5rem;
         }
-        img{
+
+        img {
             height: 25rem;
             width: auto;
             margin: 0 8px;
             padding: 1rem;
         }
 
-        button{
+        button {
             width: 10rem;
             margin-top: 4rem;
             padding: 0.75rem 3rem;
@@ -39,25 +41,92 @@
             margin: 2rem 2rem;
         }
 
-        .opt0{
+        .opt0 {
             background-color: #c80000b4;
+            /* margin-right: 0; */
         }
-        .opt0:hover{
+
+        /* .opt1 {
+            margin-left: 0;
+        } */
+
+        .opt0:hover {
             background-color: #df2525;
         }
-        .opt1:hover{
+
+        .opt1:hover {
             background-color: #00a000;
+        }
+
+        .prevButton {
+            background-color: black;
+        }
+
+        /* .buttonGroup{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 70%;
+        } */
+        .hide{
+            display: none;
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
+    <!-- <crowd-form>	    
+    <crowd-instructions link-text="View instructions" link-type="button">	
+        <short-summary>	
+            <p>Task: given the input human image on the left, and cartoon images on the right. </p>	
+            <p>Please choose the best matching hair style for the person. </p>	
+            <p>Input the hairstyle label</p>	
+        </short-summary>	
+        <detailed-instructions>	
+            <p>Task: given the input human image on the left, and cartoon images on the right. </p>	
+            <p>Please choose the best matching hair style for the person. </p>	
+            <p>Input the hairstyle label</p>        	
+        </detailed-instructions>	
+    </crowd-instructions>	
+    	
+    </crowd-form>  -->
+    <div class="container" id="group1">
+        <h1>1 / 3</h1>
         <div class="imgGroup">
-            <img src="${image_person}" alt="person" class="personImg" />
-            <img src="${image_cartoon}" alt="cartoon" class="cartoonImg" />
+            <img src="${image_person1}" alt="person" class="personImg" />
+            <img src="${image_cartoon1}" alt="cartoon" class="cartoonImg" />
         </div>
         <h2>Is the cartoon's hair style similar with the real person's ?</h2>
         <div class="buttonGroup">
+            <!-- <button class="prevButton" disabled>Previous</button> -->
+            <button class="opt0">No</button>
+            <button class="opt1">Yes</button>
+        </div>
+    </div>
+
+    <div class="container hide" id="group2">
+        <h1>2 / 3</h1>
+        <div class="imgGroup">
+            <img src="${image_person2}" alt="person" class="personImg" />
+            <img src="${image_cartoon2}" alt="cartoon" class="cartoonImg" />
+        </div>
+        <h2>Is the cartoon's hair style similar with the real person's ?</h2>
+        <div class="buttonGroup">
+            <!-- <button class="prevButton">Previous</button> -->
+            <button class="opt0">No</button>
+            <button class="opt1">Yes</button>
+        </div>
+    </div>
+
+    <div class="container hide" id="group3">
+        <h1>3 / 3</h1>
+        <div class="imgGroup">
+            <img src="${image_person3}" alt="person" class="personImg" />
+            <img src="${image_cartoon3}" alt="cartoon" class="cartoonImg" />
+        </div>
+        <h2>Is the cartoon's hair style similar with the real person's ?</h2>
+        <div class="buttonGroup">
+            <!-- <button class="prevButton">Previous</button> -->
             <button class="opt0">No</button>
             <button class="opt1">Yes</button>
         </div>
@@ -65,9 +134,34 @@
 
     <script type='text/javascript' src='https://s3.amazonaws.com/mturk-public/externalHIT_v1.js'></script>
     <script>
-        document.querySelector('.buttonGroup').addEventListener('click', () => {
-            const result = event.target.className.replace('opt', '');
-            console.log("result",result)
+
+        const result = {};
+
+        const group1 = document.querySelector("#group1");
+        const group2 = document.querySelector("#group2");
+        const group3 = document.querySelector("#group3");
+
+        group1.addEventListener("click", () => {
+            if(event.target.tagName === "BUTTON"){
+                result.group1 = event.target.className.replace('opt', '');
+                group1.classList.add("hide");
+                group2.classList.remove('hide');
+                group3.classList.add('hide');
+            }
+        })
+
+        group2.addEventListener("click", () => {
+            if(event.target.tagName === "BUTTON"){
+                result.group2 = event.target.className.replace('opt', '');
+                group1.classList.add("hide");
+                group2.classList.add('hide');
+                group3.classList.remove('hide');
+            }
+        })
+
+        group3.querySelector('.buttonGroup').addEventListener('click', () => {
+            result.group3 = event.target.className.replace('opt', '');
+            console.log("result", result)
             if (result && result !== '') {
                 const urlParams = new URLSearchParams(window.location.search)
 

@@ -55,6 +55,7 @@ def get_one_matched(human_data,asset_data, human_key):
     dis_list = []
     result_score_dict = {}
     for asset_key in asset_data:
+        
         dis_dict, dis_sum = algo.eval_distance(human_data[human_key],asset_data[asset_key])
         dis_list.append((dis_sum, asset_key,dis_dict,human_data[human_key],asset_data[asset_key]))
 
@@ -131,10 +132,10 @@ for human_name in tqdm(human_names):
         
         if save_match_img:
             '''Concatenated version'''
-            # im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
-            # cont_save_dir = str(save_dir)+'_concatenate'
-            # os.makedirs(cont_save_dir, exist_ok=True)
-            # cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+            im_concat = data_utils.concat_list_image(matched_asset_paths)
+            cont_save_dir = str(save_dir)+'_concatenate'
+            os.makedirs(cont_save_dir, exist_ok=True)
+            cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
 
             '''Individual save'''
             match_save_dir = str(save_dir)+'_match'

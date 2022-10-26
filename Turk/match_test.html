@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Most Similar Selection</title>
+    <title>Match Test</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,7 +22,8 @@
         .optionContainer {
             display: flex;
             flex-direction: row;
-            align-items: flex-start;
+            align-items: center;
+            justify-content: center;
             width: 95%;
             overflow-x: scroll;
             padding-bottom: 1rem;
@@ -45,6 +46,13 @@
             border: 2px solid #78A55A;
         }
 
+        .buttonGroup{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 50%;
+        }
+
         button {
             margin-top: 4rem;
             padding: 0.75rem 3rem;
@@ -54,6 +62,10 @@
             font-weight: 600;
             border-radius: 0.5rem;
             color: white
+        }
+
+        .prevButton{
+            background-color: black;
         }
 
         button:disabled {
@@ -86,35 +98,103 @@
     </crowd-instructions>	
     	
     </crowd-form>  -->
+
     <head>
         <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
         <script type='text/javascript' src='https://s3.amazonaws.com/mturk-public/externalHIT_v1.js'></script>
     </head>
 
-    <div class="container">
-        <img src="${image_person}" alt="main" class="mainImg" width="200" height="auto" />
+    <div class="container" id="group1">
+        <h1>1 / 3</h1>
+        <img src="${image_person1}" alt="main" class="mainImg" width="200" height="auto" />
         <h2>Please select the most similar hair style</h2>
         <div class="optionContainer">
-            <img src="${image_url1}" alt="option1" class="opt1" />
-            <img src="${image_url2}" alt="option2" class="opt2" />
-            <img src="${image_url3}" alt="option3" class="opt3" />
-            <img src="${image_url4}" alt="option4" class="opt4" />
-            <img src="${image_url5}" alt="option5" class="opt5" />
-            <img src="${image_url6}" alt="option6" class="opt6" />
-            <img src="${image_url7}" alt="option7" class="opt7" />
-            <img src="${image_url8}" alt="option8" class="opt8" />
-            <img src="${image_url9}" alt="option9" class="opt9" />
-            <img src="${image_url10}" alt="option10" class="opt10" />
+            <img src="${image_url1_1}" alt="option1" class="opt1" />
+            <img src="${image_url1_2}" alt="option2" class="opt2" />
+            <img src="${image_url1_3}" alt="option3" class="opt3" />
+            <img src="${image_url1_4}" alt="option4" class="opt4" />
+            <img src="${image_url1_5}" alt="option5" class="opt5" />
+            <img src="${image_url1_6}" alt="option6" class="opt6" />
+            <img src="${image_url1_7}" alt="option7" class="opt7" />
+            <img src="${image_url1_8}" alt="option8" class="opt8" />
+            <img src="${image_url1_9}" alt="option9" class="opt9" />
+            <img src="${image_url1_10}" alt="option10" class="opt10" />
         </div>
-        <button class="submitButton" disabled>Submit</button>
+        <div class="buttonGroup">
+            <button class="prevButton" disabled>Previous</button>
+            <button class="nextButton" disabled>Next</button>
+        </div>
+    </div>
+
+    <div class="container hide" id="group2">
+        <h1>2 / 3</h1>
+        <img src="${image_person2}" alt="main" class="mainImg" width="200" height="auto" />
+        <h2>Please select the most similar hair style</h2>
+        <div class="optionContainer">
+            <img src="${image_url2_1}" alt="option1" class="opt1" />
+            <img src="${image_url2_2}" alt="option2" class="opt2" />
+            <img src="${image_url2_3}" alt="option3" class="opt3" />
+            <img src="${image_url2_4}" alt="option4" class="opt4" />
+            <img src="${image_url2_5}" alt="option5" class="opt5" />
+            <img src="${image_url2_6}" alt="option6" class="opt6" />
+            <img src="${image_url2_7}" alt="option7" class="opt7" />
+            <img src="${image_url2_8}" alt="option8" class="opt8" />
+            <img src="${image_url2_9}" alt="option9" class="opt9" />
+            <img src="${image_url2_10}" alt="option10" class="opt10" />
+        </div>
+        <div class="buttonGroup">
+            <button class="prevButton">Previous</button>
+            <button class="nextButton" disabled>Next</button>
+        </div>
+    </div>
+
+    <div class="container hide" id="group3">
+        <h1>3 / 3</h1>
+        <img src="${image_person3}" alt="main" class="mainImg" width="200" height="auto" />
+        <h2>Please select the most similar hair style</h2>
+        <div class="optionContainer">
+            <img src="${image_url3_1}" alt="option1" class="opt1" />
+            <img src="${image_url3_2}" alt="option2" class="opt2" />
+            <img src="${image_url3_3}" alt="option3" class="opt3" />
+            <img src="${image_url3_4}" alt="option4" class="opt4" />
+            <img src="${image_url3_5}" alt="option5" class="opt5" />
+            <img src="${image_url3_6}" alt="option6" class="opt6" />
+            <img src="${image_url3_7}" alt="option7" class="opt7" />
+            <img src="${image_url3_8}" alt="option8" class="opt8" />
+            <img src="${image_url3_9}" alt="option9" class="opt9" />
+            <img src="${image_url3_10}" alt="option10" class="opt10" />
+        </div>
+        <div class="buttonGroup">
+            <button class="prevButton">Previous</button>
+            <button class="submitButton" disabled>Submit</button>
+        </div>
     </div>
 
     <!-- <script type='text/javascript' src='https://s3.amazonaws.com/mturk-public/externalHIT_v1.js'></script> -->
     <script>
+
+        const group1 = document.querySelector('#group1');
+        const group2 = document.querySelector('#group2');
+        const group3 = document.querySelector('#group3');
+
+        const optionGroup1 = group1.querySelector('.optionContainer');
+        const optionGroup2 = group2.querySelector('.optionContainer');
+        const optionGroup3 = group3.querySelector('.optionContainer');
+
+        const imgGroup1 = group1.querySelectorAll('img');
+        const imgGroup2 = group2.querySelectorAll('img');
+        const imgGroup3 = group3.querySelectorAll('img');
+
+        const next1 =  group1.querySelector('.nextButton');
+        const next2 =  group2.querySelector('.nextButton');
+
+        const prev2 =  group2.querySelector('.prevButton');
+        const prev3 =  group3.querySelector('.prevButton');
+
         const imgGroup = document.querySelectorAll('img');
         const optionGroup = document.querySelector('.optionContainer');
         const submitbtn = document.querySelector('.submitButton');
-        let result = null;
+        const result = {};
 
         imgGroup.forEach((item) => {
             const id = item.src.split('/').pop();
@@ -123,15 +203,63 @@
             }
         });
 
-        optionGroup.addEventListener("click", () => {
-            imgGroup.forEach((item) => item.classList.remove('selected'));
+        next1.addEventListener("click", () => {
+            group1.classList.add('hide');
+            group2.classList.remove('hide');
+            group3.classList.add('hide');
+        })
+
+        next2.addEventListener("click", () => {
+            group1.classList.add('hide');
+            group2.classList.add('hide');
+            group3.classList.remove('hide');
+        })
+
+        prev2.addEventListener("click", () => {
+            group1.classList.remove('hide');
+            group2.classList.add('hide');
+            group3.classList.add('hide');
+        })
+
+        prev3.addEventListener("click", () => {
+            group1.classList.add('hide');
+            group2.classList.remove('hide');
+            group3.classList.add('hide');
+        })
+
+
+
+        optionGroup1.addEventListener("click", () => {
+            imgGroup1.forEach((item) => item.classList.remove('selected'));
             event.target.classList.add('selected');
-            result = event.target.src//.split('/').pop();
-            submitbtn.disabled = false;
+            result.group1 = event.target.src
+            next1.disabled = false;
+            if(result.group1 && result.group2 && result.group3){
+                submitbtn.disabled = false;
+            }
+        })
+
+        optionGroup2.addEventListener("click", () => {
+            imgGroup2.forEach((item) => item.classList.remove('selected'));
+            event.target.classList.add('selected');
+            result.group2 = event.target.src
+            next2.disabled = false;
+            if(result.group1 && result.group2 && result.group3){
+                submitbtn.disabled = false;
+            }
+        })
+
+        optionGroup3.addEventListener("click", () => {
+            imgGroup3.forEach((item) => item.classList.remove('selected'));
+            event.target.classList.add('selected');
+            result.group3 = event.target.src
+            if(result.group1 && result.group2 && result.group3){
+                submitbtn.disabled = false;
+            }
         })
 
         submitbtn.addEventListener('click', () => {
-            console.log("result",result)
+            console.log("result", result)
             if (result) {
                 const urlParams = new URLSearchParams(window.location.search)
 

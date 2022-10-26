@@ -137,7 +137,9 @@ def most_frequent(List):
     return [num]
 
 def concat_list_image(matched_asset_paths,matched_titles=None):
-    assert len(matched_asset_paths) > 0, "No matched asset found"
+    if matched_titles == None:
+        matched_titles = ['']*len(matched_asset_paths)
+    # assert len(matched_asset_paths) > 0, "No matched asset found"
 
     for idx, path in enumerate(matched_asset_paths):
         if os.path.exists(path+'.png'):

@@ -2,6 +2,7 @@ import data_utils
 import json
 class search_algorithm ():
     def __init__(self):
+        print("Initalizing search algorithm. Verion 2.0: 10/25/2022")
         self.distance_score_quality= {
             'blur': 0, 
             'head_occlusion': 0, 
@@ -29,6 +30,7 @@ class search_algorithm ():
         self.top_direction_group1_int = [ data_utils.attr2int(attr) for attr in self.top_direction_group1]
         self.top_direction_group2_int = [ data_utils.attr2int(attr) for attr in self.top_direction_group2]
 
+        
     def eval_distance(self,human,asset,check=False):
         def type_distance(human,asset):
             return int(len(data_utils.intersection_list(human,asset)) <1)
@@ -45,8 +47,11 @@ class search_algorithm ():
         distance_dict = {'total':0}
         for attr in human:
             distance_ = 0
+            # try:
             human_attris = attr_vote2_list(human[attr])
             asset_attris = attr_vote2_list(asset[attr])
+            # except:
+            #     a=1
             
             if attr in self.distance_score_quality:
                 distance_ = self.distance_score_quality[attr] * type_distance(human_attris,asset_attris)# Type distance: Type error when no intersection
@@ -87,9 +92,19 @@ class search_algorithm ():
                     human_attris, asset_attris = data_utils.most_frequent(human_attris), data_utils.most_frequent(asset_attris)
                     distance_ = self.distance_score_type[attr] * type_distance(human_attris,asset_attris) # Type distance: Type error when no intersection
 
-            distance_sum = distance_ if type(distance_) != list else sum(distance_)
+            
             distance_dict[attr] = distance_
-            distance_dict['total'] += distance_sum
+            
+        braid_error = 0
+        for attr in distance_dict:
+            distance_ = distance_dict[attr]
+            distance_sum = distance_ if type(distance_) != list else sum(distance_)
+            if 'braid' in attr: 
+                braid_error += distance_sum
+            else:
+                distance_dict['total'] += distance_sum
+        distance_dict['total'] += min(braid_error,self.distance_score_type['braid_tf']) # Threshold for braid error
+        if 'ban' in asset: distance_dict['total'] += 1000
 
         return distance_dict, distance_dict['total']
 
