@@ -37,15 +37,15 @@ if not os.path.exists(os.path.join(root,csv_save_dir)):
 # }
 
 target_dir_dict = {
+    'test_tag_bd':['aggre','1'],
+    'test_tag_pred':[],
+    'test_tag_turk':[''],
     'test_direct_bd':['test_mapped1'],
     'test_direct_pred':[],
-    'test_direct_turk':['Turk 1'],
+    'test_direct_turk':[''],
     'test_other1_pred':[],
     'test_other2_pred':[],
-    'test_other3_pred':[],
-    'test_tag_bd':['1','aggre'],
-    'test_tag_pred':[],
-    'test_tag_turk':['_match1']
+    'test_other3_pred':[]
 }
 
 ##### Search algorithm #####
@@ -125,7 +125,7 @@ if 'matching' in mode:
         header += ['image_person2','image_url2_1','image_url2_2','image_url2_3','image_url2_4','image_url2_5','image_url2_6','image_url2_7','image_url2_8','image_url2_9','image_url2_10']
         header += ['image_person3','image_url3_1','image_url3_2','image_url3_3','image_url3_4','image_url3_5','image_url3_6','image_url3_7','image_url3_8','image_url3_9','image_url3_10']
         writer.writerow(header)
-
+    # TODO use test_tag_bd aggregation to create template_dict
     for target_dir in target_dir_dict:  # IE. test_direct_bd
         for target_subdir in target_dir_dict[target_dir]:  # IE. test_mapped1
             target_image_paths = data_utils.make_im_set(os.path.join(root, target_dir, target_subdir))
@@ -166,7 +166,7 @@ if 'matching' in mode:
                         human_ = human_data[human_name]
                         dis_dict_corr, dis_sum_corr = algo.eval_distance(human_, asset_)
 
-                        if dis_sum_corr >= dis_sum_corr:
+                        if dis_sum_corr >= match_counter_dist_thredhold:
                             other_image_paths_selected.append(other_image_path)
 
                     random.shuffle(other_image_paths_selected)

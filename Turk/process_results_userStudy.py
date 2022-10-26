@@ -6,11 +6,11 @@ from tqdm import tqdm
 import csv
 import numpy as np
 import copy
+import collections
 
 
-
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/user_study_run1/'
-label_csv = root + 'matching_run1.csv'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/user_study_run3/'
+label_csv = root + 'matching_run3.csv'
 
 
 
@@ -66,16 +66,11 @@ def string2dict(string):
     return json.loads(string)
 
 
-# TODO: deal with 3 votes
-debug_list = {}
-
-correct_dict = {}
-correct = [0,0]
+# Loop throught each row, save to vote dict. i.e. vote_dict[method_name][case/input_name] = [vote1, vote2, vote3]
+vote_dict = {}
 for row_idx, row in enumerate(rows):
-    if row_idx==0:
-        continue
+    if row_idx==0: continue
 
-    
     for case in attri_need_idx:
         if case == 'out': continue
         
@@ -84,6 +79,9 @@ for row_idx, row in enumerate(rows):
         input_options_ = row[attri_need_idx[case][1]:attri_need_idx[case][-1]+1]
         method_name = input_options_[0].split('/')[-3:-1]
         method_name = '_'.join(method_name)
+
+        if method_name not in vote_dict:
+            vote_dict[method_name] = {}
 
         # Process annotated results
         output_result_ = row[attri_need_idx['out'][0]]
@@ -103,23 +101,47 @@ for row_idx, row in enumerate(rows):
                 # break
             target_list.append(option_target)
         assert input_target is not None, 'input_target is None'
+        if input_name not in vote_dict[method_name]:
+            vote_dict[method_name][input_name] = {
+                'input_target':input_target,
+                'output_target':[output_target],
+                'target_list':target_list,
+            }
+        else:
+            vote_dict[method_name][input_name]['output_target'].append(output_target)
+            # vote_dict[method_name][input_name]['target_list'] = target_list        
 
+correct_dict = {}
+debug_list = {}
+# debug_method = 'test_direct_bd_test_mapped1'
+debug_method = 'test_tag_bd_aggre'
 
-        if method_name not in correct_dict:
-            correct_dict[method_name] = [0,0]
+for method_name in vote_dict:
+    if method_name not in correct_dict:
+        correct_dict[method_name] = [0,0]
+    for input_name in vote_dict[method_name]:
+        
+        input_target = vote_dict[method_name][input_name]['input_target']
+        votes = vote_dict[method_name][input_name]['output_target']    
+        # votes_counter = collections.Counter(votes)
+        # aggre_works = max(votes_counter.values()) > 1
+        output_target = max(set(votes), key=votes.count)
+        target_list = vote_dict[method_name][input_name]['target_list']
+
 
         if output_target == input_target:
             correct_dict[method_name] = [correct_dict[method_name][0]+1, correct_dict[method_name][1]+1]
         else:
             correct_dict[method_name] = [correct_dict[method_name][0], correct_dict[method_name][1]+1]
-            if method_name == 'test_tag_bd_aggre':
-            # if method_name == 'test_direct_bd_test_mapped2':
+            if method_name == debug_method:
                 debug_list[int(input_name)] = [target_list,[input_target],[output_target]] 
 a=1
 correct_dict = dict(sorted(correct_dict.items(), key=lambda item: item[0]))
 
 for key in correct_dict:
     print(key, round(100*correct_dict[key][0]/correct_dict[key][1],2))
+    if key == debug_method:
+        assert len(debug_list) == correct_dict[key][1]-correct_dict[key][0]
 
 
 
@@ -166,7 +188,7 @@ for key in debug_list:
     # dis_dict, dis_sum = algo.eval_distance(asset_data[debug_list[key][1][0]+'.png'], asset_data[debug_list[key][2][0]+'.png'])
    
 
-    if dis_sum_pred >=5 :
+    if dis_sum_pred >=0 :
         dis_sum = round(dis_sum_pred,2)
         dis_sum_list.append(dis_sum)
 
