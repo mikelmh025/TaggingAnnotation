@@ -31,6 +31,8 @@ parser.add_argument('--human_dataset', type=str, help='path to dataset', default
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--checkpoint', type=str, help='path to checkpoint', default='debug_dir/tagging/resnet/msebest.pt')
 parser.add_argument('--get_top_k', type=int, default=1, help='top k matched images in output')
+parser.add_argument('--target_mode', type=str, help='use tag or img(direct) to train', default='tag')
+
 args = parser.parse_args()
 
 # Golbal variables of attributes
@@ -63,82 +65,115 @@ asset_data = sort_dict(asset_data)
 
 
 
-def param2match(index, pred,label_index_dict,source_img_paths):
+def param2match(args, index, pred,label_index_dict,source_img_paths,all_asset_names=None):
     pred = pred.clone().detach().cpu().numpy()
     batch_size = pred.shape[0]
-    out_dicts = {}
-    for i in range(batch_size):
-        out_dicts[index[i].item()] = {}
-    # out_dicts = [{}]*batch_size
+    
 
-    for label_type in label_index_dict:
-        pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-        # label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-        if label_type in continuous_attr_dict:
-            for i in range(batch_size):
-                out_dicts[index[i].item()][label_type] = {str(max(pred_cur[i][0],0)):1}
+    if args.target_mode == 'tag':
+        out_dicts = {}
+        for i in range(batch_size):
+            out_dicts[index[i].item()] = {}
 
-        elif label_type in discrete_attr_dict:
-            for i in range(batch_size):
-                out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
+        for label_type in label_index_dict:
+            pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+            # label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+            if label_type in continuous_attr_dict:
+                for i in range(batch_size):
+                    out_dicts[index[i].item()][label_type] = {str(max(pred_cur[i][0],0)):1}
 
-        elif label_type in multi_class_attr_dict:
-            for i in range(batch_size):
-                out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
+            elif label_type in discrete_attr_dict:
+                for i in range(batch_size):
+                    out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
 
-    all_scores = {}
-    all_reports = {}
-    for i in range(batch_size):
-        dis_scores = {}
-        dis_reports = {}
+            elif label_type in multi_class_attr_dict:
+                for i in range(batch_size):
+                    out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
+        
+        all_scores = {}
+        all_reports = {}
+        for i in range(batch_size):
+            dis_scores = {}
+            dis_reports = {}
 
-        for asset_key in asset_data:
-            dis_dict, dis_sum = algo.eval_distance(out_dicts[index[i].item()],asset_data[asset_key])
-            dis_scores[asset_key] = dis_sum
-            dis_reports[asset_key] = dis_dict
-        # sort dis_scores by value
-        dis_scores = dict(sorted(dis_scores.items(), key=lambda d:d[1]))
-        dis_scores = {k:dis_scores[k] for k in list(dis_scores)[:args.get_top_k]}
-        dis_reports = {k:dis_reports[k] for k in list(dis_scores)[:args.get_top_k]}
+            for asset_key in asset_data:
+                dis_dict, dis_sum = algo.eval_distance(out_dicts[index[i].item()],asset_data[asset_key])
+                dis_scores[asset_key] = dis_sum
+                dis_reports[asset_key] = dis_dict
+            # sort dis_scores by value
+            dis_scores = dict(sorted(dis_scores.items(), key=lambda d:d[1]))
+            dis_scores = {k:dis_scores[k] for k in list(dis_scores)[:args.get_top_k]}
+            dis_reports = {k:dis_reports[k] for k in list(dis_scores)[:args.get_top_k]}
 
-        all_scores[index[i].item()] = dis_scores
-        all_reports[index[i].item()] = dis_reports
+            all_scores[index[i].item()] = dis_scores
+            all_reports[index[i].item()] = dis_reports
 
-    for key in all_scores:
-        human_path = source_img_paths[key]
-        image_name  = human_path.split('/')[-1]
+        for key in all_scores:
+            human_path = source_img_paths[key]
+            image_name  = human_path.split('/')[-1]
+            matched_paths = []
+            for asset_key in all_scores[key]:
+                matched_paths.append(args.data_root+ 'asset/images/'+asset_key)
+            out_list = [human_path]+matched_paths
+            out_titles = ['']*len(out_list)
+
+            im_concat = data_utils.concat_list_image(out_list,out_titles)
+            cont_save_dir = str(args.result_dir)
+            os.makedirs(cont_save_dir, exist_ok=True)
+            cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
+
+            for i in range(args.get_top_k):
+                single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+                os.makedirs(single_match_path, exist_ok=True)
+                matched_name = matched_paths[i].split('/')[-1].split('.')[0]
+                image_name_ = image_name.split('.')[0]
+                save_name_ = image_name_+'_'+matched_name+'.jpg'
+                cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
+    elif args.target_mode == 'img':
+        # change pred from np array to tensor
+        pred = torch.from_numpy(pred)
+        
+        outputs = F.softmax(pred, dim=1)
+        _, pred = torch.max(outputs.data, 1)
+
         matched_paths = []
-        for asset_key in all_scores[key]:
-            matched_paths.append(args.data_root+ 'asset/images/'+asset_key)
-        out_list = [human_path]+matched_paths
-        out_titles = ['']*len(out_list)
+        save_dir =  str(args.result_dir)+'_'+args.target_mode
+        os.makedirs(save_dir, exist_ok=True)
+        for i in range(batch_size):
+            # all_asset_names[pred[i].item()]
+            matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred[i].item()]
+            matched_name  = matched_path_.split('/')[-1]
+            matched_paths += [matched_path_]
 
-        im_concat = data_utils.concat_list_image(out_list,out_titles)
-        cont_save_dir = str(args.result_dir)
-        os.makedirs(cont_save_dir, exist_ok=True)
-        cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
+            human_path = source_img_paths[index[i].item()]
+            image_name  = human_path.split('/')[-1].split('.')[0]
+            save_name_ = image_name+'_'+matched_name+'.jpg'
+            cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
 
-        for i in range(args.get_top_k):
-            single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
-            os.makedirs(single_match_path, exist_ok=True)
-            matched_name = matched_paths[i].split('/')[-1].split('.')[0]
-            image_name_ = image_name.split('.')[0]
-            save_name_ = image_name_+'_'+matched_name+'.jpg'
-            cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
-    return all_scores
+        
+
+
+        a=1
+
+    return 
 
 def test(args, model, test_dataset,label_index_dict):
     print('testing...')
     model.eval()
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
     source_img_paths = test_dataset.source_img_paths
+    try:
+        all_asset_names = test_dataset.all_asset_names
+    except:
+        all_asset_names = None
+
     correct = 0
     total = 0
     for i, (images, labels, index) in enumerate(test_loader):
         images = images.to(args.device)
         labels = labels.to(args.device)
         outputs = model(images)
-        param2match(index, outputs,label_index_dict,source_img_paths)
+        param2match(args, index, outputs,label_index_dict,source_img_paths,all_asset_names)
     #     _, predicted = torch.max(outputs.data, 1)
     #     total += labels.size(0)
     #     correct += (predicted == labels).sum().item()
@@ -168,7 +203,13 @@ def main(args):
     elif args.model == 'inception':
         model = Inception3()
     else:
-        model = resnet_pre(num_classes)
+        if '34' in args.model:
+            model = resnet_pre(num_classes,resnet_option='34')
+        elif '50' in args.model:
+            model = resnet_pre(num_classes,resnet_option='50')
+        elif '101' in args.model:
+            model = resnet_pre(num_classes,resnet_option='101')
+        
 
     if torch.cuda.device_count() > 1 : # and not args.debug:
         print("Let's use", torch.cuda.device_count(), "GPUs!")

@@ -55,20 +55,14 @@ class face_attributes(data.Dataset):
     # Root of single types of dataset
 
     #TODO: init too slow
-    def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train_mode='train',debug_num=100):
+    def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train_mode='train',debug_num=16):
         self.root = root
         self.train_mode = train_mode
         self.human_dir = os.path.join(root, human_dir)
         self.asset_dir = os.path.join(root, 'asset')
         self.target_mode = target_mode
         
-        # self.transform = transforms.Compose([transforms.Resize((256,256)),transforms.ToTensor(),normalize]) if transform is None else transform
-        self.transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        self.transform = transform  
         self.debug = debug
 
         target_dir = self.train_mode
@@ -127,6 +121,7 @@ class face_attributes(data.Dataset):
         elif self.target_mode =='img':
             self.num_classes = len(self.asset_img_paths)
 
+    # TODO fix one hot order
     def asset_to_one_hot(self):
         self.all_asset_names = [path.split('/')[-1].split('.')[0] for path in self.asset_img_paths]
 

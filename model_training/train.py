@@ -38,6 +38,7 @@ parser.add_argument('--data_root', type=str, help='path to dataset', default='/m
 parser.add_argument('--human_dataset', type=str, help='path to dataset', default='FairFace2.0/')
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--target_mode', type=str, help='use tag or img(direct) to train', default='tag')
+parser.add_argument('--multi_gpu', action='store_true', default=False)
 args = parser.parse_args()
 # parser.add_argument('--model_path', type = str, default = 'cifar_ce.pt')
 
@@ -113,6 +114,9 @@ def accuracy_labels(args, pred,label,label_index_dict):
                 correct[label_type] = torch.sum(pred_max==label_max).item()
     elif args.target_mode == 'img':
         total_loss += [loss_cross_entropy(pred,label)]
+        # reguliazer  
+
+
         pred_max = torch.argmax(pred,dim=1)
         label_max = torch.argmax(label,dim=1)
         correct['img'] = torch.sum(pred_max==label_max).item()
@@ -249,23 +253,27 @@ def main(args):
         model = vgg11()
     elif args.model == 'inception':
         model = Inception3()
+    elif args.model == 'vit':
+        model = vit_pre(num_classes)
     else:
         # model = ResNet34(num_classes)
         # model = models.resnet34(pretrained=True)
         model = resnet_pre(num_classes)
         # model = resnet_256(num_classes)
+    
 
-    if torch.cuda.device_count() > 1:
+    if torch.cuda.device_count() > 1 and args.multi_gpu:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         model = nn.DataParallel(model)
-        # batch_size=batch_size*torch.cuda.device_count()
+        batch_size=batch_size*torch.cuda.device_count()
 
     # model.to(device)
     model.to(args.device)
     # # load pretrained model
     # if args.pretrained:
-    #     print('loading pretrained model...')
-    #     model.load_state_dict(torch.load(args.pretrained))
+    # print('loading pretrained model...','debug_dir/direct/resnet/mse2best.pt')
+    # model.load_state_dict(torch.load('debug_dir/direct/resnet/mse2best.pt'))
+
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.0005, momentum=0.9)
     # optimizer = VSGD(model.parameters(), lr=learning_rate, variability=0.05, num_iters=math.ceil(50000/ batch_size) , weight_decay=1e-4)
@@ -321,8 +329,17 @@ def main(args):
     for epoch in range(args.n_epoch):
     # train models
         print(f'epoch {epoch}')
-        # test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
         # adjust_learning_rate(optimizer, epoch, alpha_plan, loss_type=args.loss)
+
+        if epoch >= 0:
+            learning_rate = 0.01
+        if epoch >= 30*3:
+            learning_rate = 0.001
+        if epoch >= 60*3:
+            learning_rate = 0.0001
+        if epoch >= 90*3:
+            learning_rate = 0.00001
+
         model.train()
         train_acc, train_loss = train(epoch, train_loader,peer_loader_x,peer_loader_y, model, optimizer, train_dataset,label_index_dict)
         scheduler.step()
@@ -331,7 +348,7 @@ def main(args):
         test_acc, best_acc_ = evaluate(test_loader=test_loader, save=True, model=model,epoch=epoch,best_acc_=best_acc_,args=args,save_dir=save_dir,label_index_dict=label_index_dict)
 
     # save results
-        print('train acc on train images is ', round(train_acc,2), "loss is", train_loss.item())
+        print('train acc on train images is ', round(train_acc,2), "loss is", round(train_loss.item(),4))
         print('test acc on test images is ', test_acc)
 
         with open(txtfile, "a") as myfile:

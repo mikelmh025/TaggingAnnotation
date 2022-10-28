@@ -100,6 +100,19 @@ def input_dataset(dataset, noise_type, noise_path, is_human,root=None,face_attr_
 
 
 def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
+    if 'resnet' in args.model :
+        face_attr_transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif 'vit' in args.model:
+        face_attr_transform = transforms.Compose([
+            transforms.Resize((384, 384)), 
+            transforms.ToTensor(),
+            transforms.Normalize(0.5, 0.5),
+        ])
 
     if dataset =='face_attribute':
         # train_dataset = face_attributes(root=root,
@@ -119,8 +132,8 @@ def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
         root = args.data_root
         human_dir = args.human_dataset
         debug = args.debug
-        train_dataset = face_attributes(root,human_dir,debug=debug,train_mode='train',target_mode=args.target_mode)
-        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='val',target_mode=args.target_mode)
+        train_dataset = face_attributes(root,human_dir,debug=debug,train_mode='train',target_mode=args.target_mode,transform=face_attr_transform)
+        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='val',target_mode=args.target_mode,transform=face_attr_transform)
 
         num_classes = train_dataset.num_classes
         num_training_samples = train_dataset.__len__()
@@ -129,12 +142,25 @@ def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
 
 
 def input_dataset_face_attr_test(args, dataset,root=None,human_dir=None):
-
+    if 'resnet' in args.model :
+        face_attr_transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif 'vit' in args.model:
+        face_attr_transform = transforms.Compose([
+            transforms.Resize((384, 384)), 
+            transforms.ToTensor(),
+            transforms.Normalize(0.5, 0.5),
+        ])
+        
     if dataset =='face_attribute':
         root = args.data_root
         human_dir = args.human_dataset
         debug = args.debug
-        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='test',target_mode=args.target_mode)
+        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='test',target_mode=args.target_mode,transform=face_attr_transform)
 
         num_classes = test_dataset.num_classes
         num_training_samples = test_dataset.__len__()

@@ -13,7 +13,7 @@
             "justMyCode": true
         },
         {
-            "name": "Test",
+            "name": "Test Tag",
             "type": "python",
             "request": "launch",
             "program": "test.py",
@@ -22,9 +22,29 @@
                 "--seed=0",
                 "--result_dir=test_result",
                 "--loss=mse",
-                "--model=resnet",
+                "--model=resnet34",
                 "--batch_size=16",
-                "--get_top_k=5"
+                "--get_top_k=5",
+                "--target_mode=tag",
+                "--checkpoint=debug_dir/tagging/resnet/msebest.pt",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Test Img",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "args": [
+                "--dataset=face_attribute",
+                "--seed=0",
+                "--result_dir=test_result",
+                "--loss=mse",
+                "--model=resnet50",
+                "--batch_size=16",
+                "--get_top_k=5",
+                "--target_mode=img",
+                "--checkpoint=debug_dir/direct_50/resnet/msebest.pt",
             ],
             "console": "integratedTerminal"
         },
@@ -38,17 +58,16 @@
                 "--seed=0",
                 "--result_dir=debug_dir",
                 "--loss=mse",
-                "--model=resnet",
-                "--lr=0.00001",
-                "--batch_size=16",
+                "--model=vit",
+                "--lr=0.001",
+                "--batch_size=4",
                 "--debug",
-                "--target_mode=img"
-
+                "--target_mode=img",
             ],
             "console": "integratedTerminal"
         },
         {
-            "name": "Debug Test",
+            "name": "Debug Test img",
             "type": "python",
             "request": "launch",
             "program": "test.py",
@@ -57,10 +76,11 @@
                 "--seed=0",
                 "--result_dir=debug_testing",
                 "--loss=mse",
-                "--model=resnet",
+                "--model=resnet50",
                 "--batch_size=16",
                 "--debug",
-
+                "--checkpoint=debug_dir/direct_50/resnet/msebest.pt",
+                "--target_mode=img"
             ],
             "console": "integratedTerminal"
         },
