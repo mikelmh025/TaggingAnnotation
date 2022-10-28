@@ -11,7 +11,8 @@ url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/Data_HITL_navi/'
 human_dir = 'test'
 mode = 'matching'
 # mode = 'subjective'
-mode = ['matching','subjective']
+mode = 'dual'
+# mode = ['matching','subjective','dual']
 
 match_options = 4
 match_counter_dist_thredhold = 5
@@ -36,13 +37,15 @@ if not os.path.exists(os.path.join(root,csv_save_dir)):
 #     'test_tag_turk':['_match1','_match2','_match3','_match_aggre']
 # }
 
+
+
 target_dir_dict = {
-    'test_tag_bd':['aggre','1'],
-    'test_tag_pred':[],
-    'test_tag_turk':[''],
-    'test_direct_bd':['test_mapped1'],
+    'test_tag_bd':['aggre'],
     'test_direct_pred':[],
-    'test_direct_turk':[''],
+    'test_tag_pred':[],
+    'test_tag_turk':[],
+    'test_direct_bd':['test_mapped3'],
+    'test_direct_turk':[],
     'test_other1_pred':[],
     'test_other2_pred':[],
     'test_other3_pred':[]
@@ -114,6 +117,54 @@ if 'subjective' in mode:
                         writer.writerow(buffer_list)
                     buffer_list = []
             # break
+if 'dual' in mode:
+    # csv_path = os.path.join(root, csv_save_dir, 'all_dual.csv')
+    combined_csv_path = os.path.join(root, csv_save_dir, 'combined_dual.csv')
+    with open(combined_csv_path, 'w') as f:
+        writer = csv.writer(f)
+        header  = ['image_person1','image_cartoonA1','image_cartoonB1']
+        header += ['image_person2','image_cartoonA2','image_cartoonB2']
+        header += ['image_person3','image_cartoonA3','image_cartoonB3']
+        writer.writerow(header)
+        
+    method_dict, case_list = {}, []
+    for target_dir in target_dir_dict: 
+        for target_subdir in target_dir_dict[target_dir]: 
+            target_image_paths = data_utils.make_im_set(os.path.join(root, target_dir, target_subdir))
+            target_image_paths = sorted(target_image_paths)
+            target_image_dict = {os.path.basename(item).split('.')[0].split('_')[0]:item for item in target_image_paths}
+            method_dict[target_dir+'_'+target_subdir] = target_image_dict
+            if len(case_list) == 0:
+                case_list = list(target_image_dict.keys())
+
+    buffer_list = []
+    for case in case_list:
+        method_paths = []
+        for method in method_dict:
+            method_path = method_dict[method][case]
+            method_paths.append(method_path)
+
+        human_name = method_paths[0].split('/')[-1].split('_')[0]
+        human_path_ = os.path.join(root, human_dir, human_name+'.jpg')
+        assert os.path.exists(human_path_), human_path_
+        matched_asset_paths = [human_path_]+method_paths
+        matched_titles = ['']*len(matched_asset_paths) #['human']+list(method_dict.keys())
+        im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles)
+        save_dir = combined_csv_path.replace('.csv', '')
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_path = os.path.join(save_dir, case+'.jpg')
+        cv2.imwrite(save_path, im_concat)
+
+        buffer_list += matched_asset_paths #+ ['zzzz']* (10-len(matched_asset_paths))
+        buffer_list = [item.replace(root, url_root) for item in buffer_list]
+        if len(buffer_list) == len(header):
+            # Write to combined CSV
+            with open(combined_csv_path, 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow(buffer_list)
+            buffer_list = []
+        a=1
 
 if 'matching' in mode:
     template_dict = {}

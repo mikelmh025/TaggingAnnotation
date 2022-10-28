@@ -7,14 +7,15 @@ from typing import Tuple
 
 
 save_img_root = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/'
-# save_img_dir = 'google_cartoon/'
-save_img_dir = 'metahuman/'
+save_img_dir = 'google_cartoon/'
+# save_img_dir = 'metahuman/'
 
 url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/Data_HITL_navi/other_system/'
 # url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/test/'
 
-# img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/cartoonset100k/save_dir/0110'
-img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/metahuman/metahuman'
+img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/cartoonset100k/save_dir/0110'
+# img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/metahuman/metahuman'
+
 save_root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/'
 csv_path = save_img_dir.replace('/','') + '.csv'
 img_paths = data_utils.make_im_set(img_dir)
@@ -52,7 +53,7 @@ with open(save_root+csv_path, 'w') as f:
     buffer, buff_id = [], ''
     for img_path in img_paths:
         id = img_path.split('/')[-1].split('_')[0]
-        if id != buff_id and len(buffer):
+        if id != buff_id and len(buffer)>0:
             # print("clear buffer and save results")
             matched_titles = ['']*len(buffer)
             im_concat = data_utils.concat_list_image(buffer,matched_titles)

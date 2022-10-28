@@ -9,8 +9,8 @@ import copy
 import collections
 
 
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/user_study_run3/'
-label_csv = root + 'matching_run3.csv'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/user_study_run4/'
+label_csv = root + 'matching.csv'
 
 
 
@@ -123,8 +123,8 @@ for method_name in vote_dict:
         
         input_target = vote_dict[method_name][input_name]['input_target']
         votes = vote_dict[method_name][input_name]['output_target']    
-        # votes_counter = collections.Counter(votes)
-        # aggre_works = max(votes_counter.values()) > 1
+        votes_counter = collections.Counter(votes)
+        aggre_works = max(votes_counter.values()) > 1
         output_target = max(set(votes), key=votes.count)
         target_list = vote_dict[method_name][input_name]['target_list']
 
