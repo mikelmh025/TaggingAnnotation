@@ -238,6 +238,7 @@ class search_algorithm ():
         dis_scores = dict(sorted(dis_scores.items(), key=lambda d:d[1]))
         return dis_scores, dis_reports
 
+    # output out_dis_scores{asset_key: int dis_sum}, out_dis_reports{asset_key: dict dis_dict}
     def multi_round_search(self,human_label,asset_data,
                             attr_care = ['top_curly','side_curly'],search_top=15):
         # Inital round of search    

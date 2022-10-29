@@ -63,73 +63,146 @@ def sort_dict(data):
     return dict(sorted(data.items(), key=lambda d:d[0]))
 asset_data = sort_dict(asset_data)
 
+# given tensor pred or original labsl, return a dict of tag (used for search algorithm)
+def tensor2tagDict(input_tensor, index, label_index_dict):
+    input_tensor = input_tensor.clone().detach().cpu().numpy()
+    batch_size = input_tensor.shape[0]
 
+    out_dicts = {}
+    for i in range(batch_size):
+        out_dicts[index[i].item()] = {}
 
-def param2match(args, index, pred,label_index_dict,source_img_paths,all_asset_names=None):
-    pred = pred.clone().detach().cpu().numpy()
-    batch_size = pred.shape[0]
+    for label_type in label_index_dict:
+        pred_cur = input_tensor[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+        # label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
+        if label_type in continuous_attr_dict:
+            for i in range(batch_size):
+                out_dicts[index[i].item()][label_type] = {str(max(pred_cur[i][0],0)):1}
+
+        elif label_type in discrete_attr_dict:
+            for i in range(batch_size):
+                out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
+
+        elif label_type in multi_class_attr_dict:
+            for i in range(batch_size):
+                out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
+
+    return out_dicts
+
+# Given dict of tag search assets
+def tag_search_asset(tag_dict,index):
+    batch_size =len(tag_dict)
+    # New version: Get top K matched assets
+    all_search_scores = {}
+    all_search_reports = {}
+    for i in range(batch_size):
+        search_scores, search_reports = algo.multi_round_search(tag_dict[index[i].item()],asset_data)
+        all_search_scores[index[i].item()] = search_scores
+        all_search_reports[index[i].item()] = search_reports
+    return all_search_scores, all_search_reports
+
+def search_report2img(all_search_scores,all_search_reports, source_img_paths, idx_key, args=None):
+    # Get basic info of human matched assets
+    human_path = source_img_paths[idx_key]
+    image_name  = human_path.split('/')[-1]
+    matched_assets = list(all_search_scores[idx_key].keys())[:args.get_top_k]
+
+    # Convert to image path
+    matched_paths = [os.path.join(args.data_root,'asset/images/',asset_name) for asset_name in matched_assets]
+    out_list = [human_path]+matched_paths
+
+    # Add titles
+    # out_titles = ['']*len(out_list)
+    out_titles = ['']
     
+    for matched_paths in matched_paths:
+        match_namme = matched_paths.split('/')[-1]
+        report_ = all_search_reports[idx_key][match_namme]
+        title_ = [attr + ' ' + str(round(report_[attr],2)) + ' \n' for attr in report_ if report_[attr] != 0 ] 
+        title_ = ''.join(title_)
+        out_titles.append(title_)
+
+    im_concat = data_utils.concat_list_image(out_list,out_titles)
+    return im_concat, image_name
+
+# TODO change Tag label and retrain
+def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_asset_names=None):
+    batch_size = labels.shape[0]
 
     if args.target_mode == 'tag':
-        out_dicts = {}
-        for i in range(batch_size):
-            out_dicts[index[i].item()] = {}
-
-        for label_type in label_index_dict:
-            pred_cur = pred[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-            # label_cur = label[:,label_index_dict[label_type][0]:label_index_dict[label_type][1]+1]
-            if label_type in continuous_attr_dict:
-                for i in range(batch_size):
-                    out_dicts[index[i].item()][label_type] = {str(max(pred_cur[i][0],0)):1}
-
-            elif label_type in discrete_attr_dict:
-                for i in range(batch_size):
-                    out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
-
-            elif label_type in multi_class_attr_dict:
-                for i in range(batch_size):
-                    out_dicts[index[i].item()][label_type] = {str(np.argmax(pred_cur[i])):1}
+        pred_tag_dict = tensor2tagDict(pred, index,label_index_dict)
+        label_tag_dict = tensor2tagDict(labels, index,label_index_dict)
         
-        all_scores = {}
-        all_reports = {}
-        for i in range(batch_size):
-            dis_scores = {}
-            dis_reports = {}
+        # Search asset
+        pred_search_scores, pred_search_reports = tag_search_asset(pred_tag_dict,index)
+        label_search_scores, label_search_reports = tag_search_asset(label_tag_dict,index)
 
-            for asset_key in asset_data:
-                dis_dict, dis_sum = algo.eval_distance(out_dicts[index[i].item()],asset_data[asset_key])
-                dis_scores[asset_key] = dis_sum
-                dis_reports[asset_key] = dis_dict
-            # sort dis_scores by value
-            dis_scores = dict(sorted(dis_scores.items(), key=lambda d:d[1]))
-            dis_scores = {k:dis_scores[k] for k in list(dis_scores)[:args.get_top_k]}
-            dis_reports = {k:dis_reports[k] for k in list(dis_scores)[:args.get_top_k]}
+        # Calculate accuracy / matching chance of pred and label
+        # Using top 1 asset / top 5 assets
+        # Option1: use min as the ground truth option, option2: use all the assets with min score as ground truth options
+        pred_top1_acc_strict, pred_top1_acc_relax = 0, 0
+        pred_top5_acc_strict, pred_top5_acc_relax = 0, 0
 
-            all_scores[index[i].item()] = dis_scores
-            all_reports[index[i].item()] = dis_reports
+        for key in pred_search_scores:
+            target = list(label_search_scores[key].keys())[0] # option1
+            min_scores = min(list(label_search_scores[key].values()))
+            targets = [item for item in label_search_scores[key] if label_search_scores[key][item] == min_scores] # option2
 
-        for key in all_scores:
-            human_path = source_img_paths[key]
-            image_name  = human_path.split('/')[-1]
-            matched_paths = []
-            for asset_key in all_scores[key]:
-                matched_paths.append(args.data_root+ 'asset/images/'+asset_key)
-            out_list = [human_path]+matched_paths
-            out_titles = ['']*len(out_list)
+            pred = list(pred_search_scores[key].keys())
 
-            im_concat = data_utils.concat_list_image(out_list,out_titles)
-            cont_save_dir = str(args.result_dir)
-            os.makedirs(cont_save_dir, exist_ok=True)
-            cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
+            # Top1 strict
+            if target in pred[0]:
+                pred_top1_acc_strict += 1
+            # Top1 relax
+            if len(list(set(pred[0]).intersection(set(targets)))) > 0:
+                pred_top1_acc_relax += 1
 
-            for i in range(args.get_top_k):
-                single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
-                os.makedirs(single_match_path, exist_ok=True)
-                matched_name = matched_paths[i].split('/')[-1].split('.')[0]
-                image_name_ = image_name.split('.')[0]
-                save_name_ = image_name_+'_'+matched_name+'.jpg'
-                cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
+            # Top5 strict
+            if target in pred[:5]:
+                pred_top5_acc_strict += 1
+            if len(list(set(pred[0:5]).intersection(set(targets)))) > 0:
+                pred_top5_acc_relax += 1
+
+        # Save images
+        cont_save_dir = str(args.result_dir)
+        os.makedirs(cont_save_dir, exist_ok=True)
+        for key in pred_search_scores:
+            im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
+            cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+        
+        # Save images
+        cont_save_dir = str(args.result_dir)+'_label'
+        os.makedirs(cont_save_dir, exist_ok=True)
+        for key in label_search_scores:
+            im_concat, image_name = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
+            cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+
+        # for key in all_scores:
+        #     human_path = source_img_paths[key]
+        #     image_name  = human_path.split('/')[-1]
+        #     matched_paths = []
+        #     for asset_key in all_scores[key]:
+        #         matched_paths.append(args.data_root+ 'asset/images/'+asset_key)
+        #     out_list = [human_path]+matched_paths
+        #     out_titles = ['']*len(out_list)
+
+        #     im_concat = data_utils.concat_list_image(out_list,out_titles)
+        #     cont_save_dir = str(args.result_dir)
+        #     os.makedirs(cont_save_dir, exist_ok=True)
+        #     cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
+
+        #     for i in range(args.get_top_k):
+        #         single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+        #         os.makedirs(single_match_path, exist_ok=True)
+        #         matched_name = matched_paths[i].split('/')[-1].split('.')[0]
+        #         image_name_ = image_name.split('.')[0]
+        #         save_name_ = image_name_+'_'+matched_name+'.jpg'
+        #         cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
     elif args.target_mode == 'img':
+        pred = pred.clone().detach().cpu().numpy()
+        batch_size = pred.shape[0]
         # change pred from np array to tensor
         pred = torch.from_numpy(pred)
         
@@ -150,12 +223,9 @@ def param2match(args, index, pred,label_index_dict,source_img_paths,all_asset_na
             save_name_ = image_name+'_'+matched_name+'.jpg'
             cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
 
-        
 
+    return pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
 
-        a=1
-
-    return 
 
 def test(args, model, test_dataset,label_index_dict):
     print('testing...')
@@ -169,16 +239,23 @@ def test(args, model, test_dataset,label_index_dict):
 
     correct = 0
     total = 0
+
+    correct_counts = (0,0,0,0) # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
     for i, (images, labels, index) in enumerate(test_loader):
         images = images.to(args.device)
         labels = labels.to(args.device)
         outputs = model(images)
-        param2match(args, index, outputs,label_index_dict,source_img_paths,all_asset_names)
+        correct_counts_ = param2match(args, index, labels, outputs,label_index_dict,source_img_paths,all_asset_names)
+        correct_counts = tuple(map(sum, zip(correct_counts, correct_counts_)))
+        total += labels.size(0)
     #     _, predicted = torch.max(outputs.data, 1)
-    #     total += labels.size(0)
     #     correct += (predicted == labels).sum().item()
     # print('Accuracy of the network on the test images: %d %%' % (100 * correct / total))
-    return
+    pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax = correct_counts
+    print('pred_top1_acc_strict: %.3f %%' % (100 * pred_top1_acc_strict / total))
+    print('pred_top1_acc_relax: %.3f %%' % (100 * pred_top1_acc_relax / total))
+    print('pred_top5_acc_strict: %.3f %%' % (100 * pred_top5_acc_strict / total))
+    print('pred_top5_acc_relax: %.3f %%' % (100 * pred_top5_acc_relax / total))
 
     return
 

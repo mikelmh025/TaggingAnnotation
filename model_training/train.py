@@ -107,11 +107,12 @@ def accuracy_labels(args, pred,label,label_index_dict):
                 correct[label_type] = torch.sum(pred_max==label_max).item()
             elif label_type in multi_class_attr_dict:
                 # TODO: Fix this
-                continue
+                # continue
                 total_loss += [loss_cross_entropy(pred_cur,label_cur)]
                 pred_max = torch.argmax(pred_cur,dim=1)
                 label_max = torch.argmax(label_cur,dim=1)
                 correct[label_type] = torch.sum(pred_max==label_max).item()
+                
     elif args.target_mode == 'img':
         total_loss += [loss_cross_entropy(pred,label)]
         # reguliazer  

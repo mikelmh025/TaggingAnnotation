@@ -20,7 +20,7 @@
             "args": [
                 "--dataset=face_attribute",
                 "--seed=0",
-                "--result_dir=test_result",
+                "--result_dir=test_result_version2",
                 "--loss=mse",
                 "--model=resnet34",
                 "--batch_size=16",
@@ -58,11 +58,11 @@
                 "--seed=0",
                 "--result_dir=debug_dir",
                 "--loss=mse",
-                "--model=vit",
+                "--model=resnet50",
                 "--lr=0.001",
                 "--batch_size=4",
                 "--debug",
-                "--target_mode=img",
+                "--target_mode=tag",
             ],
             "console": "integratedTerminal"
         },

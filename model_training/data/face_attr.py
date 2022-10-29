@@ -1,5 +1,6 @@
 import imp
 import os
+import re
 import sys
 import numpy as np
 import torch
@@ -12,7 +13,7 @@ from os import listdir
 from os.path import *
 import PIL.Image as Image
 from pathlib import Path
-
+import collections
 import json
 # train_face_attr_transform = transforms.Compose([
 #         transforms.Resize((256,256)),
@@ -51,6 +52,7 @@ discrete_attr_dict = {
 multi_class_attr_dict = {
     'top_direction':8
 }
+
 class face_attributes(data.Dataset):
     # Root of single types of dataset
 
@@ -61,6 +63,7 @@ class face_attributes(data.Dataset):
         self.human_dir = os.path.join(root, human_dir)
         self.asset_dir = os.path.join(root, 'asset')
         self.target_mode = target_mode
+        self.tag_info()
         
         self.transform = transform  
         self.debug = debug
@@ -163,6 +166,7 @@ class face_attributes(data.Dataset):
         return self.mean, self.std
 
 
+    # Note: 10/28/2022 We are not using soft labels anymore, aggregation.
     def process_soft_label(self, soft_label):
         # TODO
         # continuous_attr_dict,discrete_attr_dict,multi_class_attr_dict
@@ -186,6 +190,7 @@ class face_attributes(data.Dataset):
             label_dict = soft_label[image]
 
             for label in label_dict:
+                if label =='ban': continue
 
                 attr_dict = label_dict[label]
 
@@ -196,8 +201,9 @@ class face_attributes(data.Dataset):
 
                 # Process continuous attr (average)
                 if label in continuous_attr_dict:
-                    aggre_vote = np.mean(vote_list)
-                    aggre_label_all[image][index_dict[label][0]] = aggre_vote
+                    aggre_vote = data_utils.most_frequent(vote_list)
+                    # aggre_vote = np.mean(vote_list)
+                    aggre_label_all[image][index_dict[label][0]] = aggre_vote[0]
                     a=1
 
                 # Process discrete attr (vote)
@@ -208,7 +214,11 @@ class face_attributes(data.Dataset):
                 
                 # Process multi class attr (vote)
                 elif label in multi_class_attr_dict:
-                    soft = self.soft_label_to_one_hot(vote_list,multi_class_attr_dict[label])
+                    group1, group2 = data_utils.intersection_list_keep_size(vote_list,self.top_direction_group1_int), data_utils.intersection_list_keep_size(vote_list,self.top_direction_group2_int)
+                    group1, group2 = self.filter_votes(group1), self.filter_votes(group2)
+                    soft = self.one_hot(np.array(group1+group2),multi_class_attr_dict[label])
+                    if len(soft.shape) > 1:
+                        soft = np.sum(soft,axis=0) # Aggregate votes by sum
 
                     aggre_label_all[image][index_dict[label][0]:index_dict[label][1]+1] = soft
                     a=1
@@ -221,14 +231,35 @@ class face_attributes(data.Dataset):
         self.index_dict = index_dict
         return soft_label,aggre_label_all
 
+    def tag_info(self):
+        self.top_direction_group1     = ['0-向下','1-斜下','2-横向','3-斜上','6-向上（头发立起来）','7-向后梳头（长发向后梳，大背头，马尾）']
+        self.top_direction_group2     = ['4-中分','5-37分']
+        self.top_direction_group1_int = [ data_utils.attr2int(attr) for attr in self.top_direction_group1]
+        self.top_direction_group2_int = [ data_utils.attr2int(attr) for attr in self.top_direction_group2]
+
+    def filter_votes(self, votes):
+        if len(votes) == 0: return []
+            
+        counter = collections.Counter(votes)
+        max_count = max(counter.values())
+        counter = {key:val for key,val in counter.items()}
+        # sort dict by value
+        counter = {k: v for k, v in sorted(counter.items(), key=lambda item: item[1],reverse=True)}
+        resulting_votes = [key for key in counter if counter[key] == max_count]
+        return resulting_votes
+
     # soft max of aggregated one hot vectors
     def soft_label_to_one_hot(self, vote_list, num_classes):
-        one_hots = self.one_hot(np.array(vote_list),num_classes) # Get one hot
-        sum_  = np.sum(one_hots,axis=0) # Aggregate votes by sum
-        soft  = np.exp(sum_)/sum(np.exp(sum_)) # Use softmax to get soft label
-        soft  = soft.tolist()
+        # one_hots = self.one_hot(np.array(vote_list),num_classes) # Get one hot
+        # sum_  = np.sum(one_hots,axis=0) # Aggregate votes by sum
+        # soft  = np.exp(sum_)/sum(np.exp(sum_)) # Use softmax to get soft label
+        # soft  = soft.tolist()
+        # return soft
+
+        attr = data_utils.most_frequent(vote_list)
+        one_hot = self.one_hot(np.array([attr]),num_classes)
+        return one_hot
         
-        return soft
 
     def one_hot(self, a, num_classes):
         return np.squeeze(np.eye(num_classes)[a.reshape(-1)])
