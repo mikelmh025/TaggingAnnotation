@@ -9,7 +9,7 @@ import copy
 import collections
 
 
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/user_study_run4/'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/match2/'
 label_csv = root + 'matching.csv'
 
 
@@ -85,7 +85,11 @@ for row_idx, row in enumerate(rows):
 
         # Process annotated results
         output_result_ = row[attri_need_idx['out'][0]]
-        output_result_ = string2dict(output_result_)['group'+case]
+        try:
+            output_result_ = string2dict(output_result_)['group'+case]
+        except:
+            print('Error:', output_result_)
+            continue
         output_result_ = output_result_.split('/')[-1].split('.')[0]
         output_name, output_target = output_result_.split('_')[0], output_result_.split('_')[1]
 
@@ -114,7 +118,8 @@ for row_idx, row in enumerate(rows):
 correct_dict = {}
 debug_list = {}
 # debug_method = 'test_direct_bd_test_mapped1'
-debug_method = 'test_tag_bd_aggre'
+# debug_method = 'test_tag_bd_aggre'
+debug_method = 'test_tag_pred_top1'
 
 for method_name in vote_dict:
     if method_name not in correct_dict:
@@ -125,6 +130,7 @@ for method_name in vote_dict:
         votes = vote_dict[method_name][input_name]['output_target']    
         votes_counter = collections.Counter(votes)
         aggre_works = max(votes_counter.values()) > 1
+        if not aggre_works: continue
         output_target = max(set(votes), key=votes.count)
         target_list = vote_dict[method_name][input_name]['target_list']
 
@@ -183,7 +189,12 @@ for key in debug_list:
     other_options = [os.path.join(asset_root, item+'.png') for item in other_options]
 
     dis_dict_corr, dis_sum_corr = algo.eval_distance(human_data[str(key)],asset_data[debug_list[key][1][0]+'.png'])
+    dis_dict_corr2, dis_sum_corr2 = algo.eval_distance_specific(human_data[str(key)], asset_data[debug_list[key][1][0]+'.png'],['top_curly','side_curly'])
+    dis_sum_corr += dis_sum_corr2*0.5
+
     dis_dict_pred, dis_sum_pred = algo.eval_distance(human_data[str(key)],asset_data[debug_list[key][2][0]+'.png'])
+    dis_dict_pred2, dis_sum_pred2 = algo.eval_distance_specific(human_data[str(key)], asset_data[debug_list[key][2][0]+'.png'],['top_curly','side_curly'])
+    dis_sum_pred += dis_sum_pred2*0.5
 
     # dis_dict, dis_sum = algo.eval_distance(asset_data[debug_list[key][1][0]+'.png'], asset_data[debug_list[key][2][0]+'.png'])
    

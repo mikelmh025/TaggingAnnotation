@@ -193,7 +193,7 @@ import collections
 # print(set(a).difference(set(b)))
 # print(set(b).difference(set(a)))
 
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/dual_run2/'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/dual_run4/'
 # label_csv = root + 'Batch_4912817_batch_results.csv'
 # label_csv = root + 'pred_dual.csv'
 label_csv = root + 'bd_dual.csv'
@@ -228,7 +228,7 @@ rows = load_csv(label_csv)
 data_dict = {}
 header = rows[0]
 
-
+worker_id_idx = header.index('WorkerId')
 
 for idx, item in enumerate(header):
     for key in attri_need:
@@ -250,11 +250,14 @@ def string2dict(string):
 
 # debug_list = []
 # TODO: deal with 3 cases
+worker_id_list = []
 
 vote_dict ={}
 for row_idx, row in enumerate(rows):
     if row_idx==0:
         continue
+    worker_id_list += [row[worker_id_idx]]
+
 
     
     for case in attri_need_idx:
@@ -282,6 +285,10 @@ for row_idx, row in enumerate(rows):
         else:
             vote_dict[input_human_]['scores'] += [output_result_]
             # vote_dict[input_human_]['options'] += [input_options_]
+
+# get counts of unique worker id
+worker_id_count = collections.Counter(worker_id_list)
+print("worker_id_count",worker_id_count)
 
 correct_dict = {}    
 
@@ -381,6 +388,7 @@ for case in vote_dict:
         correct_dict[method_name2] = [correct_dict[method_name2][0], correct_dict[method_name2][1]+1]
         both_failed_counter += 1
         both_failed_dict[input_name] = vote_dict[input_human_]
+        save_image = True
     elif max_key == '1': # Using good score isnteading of bad score
         # correct_dict[method_name1] = [correct_dict[method_name1][0]  , correct_dict[method_name1][1]+1]
         # correct_dict[method_name2] = [correct_dict[method_name2][0]+1, correct_dict[method_name2][1]+1]
