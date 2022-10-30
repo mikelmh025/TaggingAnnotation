@@ -141,7 +141,7 @@ def input_dataset_face_attr(args, dataset,root=None,human_dir=None):
     return train_dataset, test_dataset, num_classes, num_training_samples
 
 
-def input_dataset_face_attr_test(args, dataset,root=None,human_dir=None):
+def input_dataset_face_attr_test(args, dataset,root=None):
     if 'resnet' in args.model :
         face_attr_transform = transforms.Compose([
             transforms.Resize(256),

@@ -10,6 +10,9 @@ lark doc/*
 wandb/*
 
 model_training/*/__pycache__/*
+model_training/train_round2/*
+model_training/test_*/*
+
 
 *.jpg
 

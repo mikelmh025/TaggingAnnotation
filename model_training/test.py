@@ -125,7 +125,6 @@ def search_report2img(all_search_scores,all_search_reports, source_img_paths, id
     im_concat = data_utils.concat_list_image(out_list,out_titles)
     return im_concat, image_name
 
-# TODO change Tag label and retrain
 def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_asset_names=None):
     batch_size = labels.shape[0]
 
@@ -148,27 +147,45 @@ def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_
             min_scores = min(list(label_search_scores[key].values()))
             targets = [item for item in label_search_scores[key] if label_search_scores[key][item] == min_scores] # option2
 
-            pred = list(pred_search_scores[key].keys())
+            pred_assets = list(pred_search_scores[key].keys())
 
             # Top1 strict
-            if target in pred[0]:
+            if target in pred_assets[0]:
                 pred_top1_acc_strict += 1
             # Top1 relax
-            if len(list(set(pred[0]).intersection(set(targets)))) > 0:
+            if len(data_utils.intersection_list([pred_assets[0]], targets)) > 0:
                 pred_top1_acc_relax += 1
 
             # Top5 strict
-            if target in pred[:5]:
+            top_k=5
+            if target in pred_assets[:top_k]:
                 pred_top5_acc_strict += 1
-            if len(list(set(pred[0:5]).intersection(set(targets)))) > 0:
+            # if len(list(set(pred[0:5]).intersection(set(targets)))) > 0:
+            if len(data_utils.intersection_list(pred_assets[0:top_k], targets)) > 0:
                 pred_top5_acc_relax += 1
+            # else:
+            #     cont_save_dir = str(args.result_dir)+'_failed'
+            #     os.makedirs(cont_save_dir, exist_ok=True)
+            #     im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
+            #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
 
+        
+        print("Known issue in the accuracy calculation:     1. # Search algorithm make sure there are enough options to match for top 5, top 10❗️❗️")
         # Save images
         cont_save_dir = str(args.result_dir)
         os.makedirs(cont_save_dir, exist_ok=True)
         for key in pred_search_scores:
             im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
             cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+            for i in range(args.get_top_k):
+                single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+                os.makedirs(single_match_path, exist_ok=True)
+                matched_name = list(pred_search_scores[key].keys())[i]
+                image_name_ = image_name.split('.')[0]
+                save_name_ = image_name_+'_'+matched_name+'.jpg'
+                matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
+                cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
 
         
         # Save images
@@ -193,13 +210,13 @@ def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_
         #     os.makedirs(cont_save_dir, exist_ok=True)
         #     cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
 
-        #     for i in range(args.get_top_k):
-        #         single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
-        #         os.makedirs(single_match_path, exist_ok=True)
-        #         matched_name = matched_paths[i].split('/')[-1].split('.')[0]
-        #         image_name_ = image_name.split('.')[0]
-        #         save_name_ = image_name_+'_'+matched_name+'.jpg'
-        #         cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
+            # for i in range(args.get_top_k):
+            #     single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+            #     os.makedirs(single_match_path, exist_ok=True)
+            #     matched_name = matched_paths[i].split('/')[-1].split('.')[0]
+            #     image_name_ = image_name.split('.')[0]
+            #     save_name_ = image_name_+'_'+matched_name+'.jpg'
+            #     cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
     elif args.target_mode == 'img':
         pred = pred.clone().detach().cpu().numpy()
         batch_size = pred.shape[0]
@@ -242,6 +259,7 @@ def test(args, model, test_dataset,label_index_dict):
 
     correct_counts = (0,0,0,0) # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
     for i, (images, labels, index) in enumerate(test_loader):
+        if index[0].item() >=300: break
         images = images.to(args.device)
         labels = labels.to(args.device)
         outputs = model(images)
@@ -267,8 +285,9 @@ def main(args):
     # noise_type_map = {'clean':'clean_label', 'worst': 'worse_label', 'aggre': 'aggre_label', 'rand1': 'random_label1', 'rand2': 'random_label2', 'rand3': 'random_label3', 'clean100': 'clean_label', 'noisy100': 'noisy_label'}
     # args.noise_type = noise_type_map[args.noise_type]
     # load dataset
-    # train_dataset,test_dataset,num_classes,num_training_samples = input_dataset_face_attr(args, args.dataset,root=None,human_dir='v3')
-    test_dataset,num_classes,num_training_samples = input_dataset_face_attr_test(args, args.dataset,root=None,human_dir='v3')
+    # train_dataset,test_dataset,num_classes,num_training_samples = input_dataset_face_attr(args, args.dataset,root=None)
+    # test_dataset = test_dataset
+    test_dataset,num_classes,num_training_samples = input_dataset_face_attr_test(args, args.dataset,root=None)
     label_index_dict = test_dataset.get_index_dict()
 
     # load model

@@ -20,13 +20,13 @@
             "args": [
                 "--dataset=face_attribute",
                 "--seed=0",
-                "--result_dir=test_result_version2",
+                "--result_dir=test_round2/resnet50",
                 "--loss=mse",
-                "--model=resnet34",
+                "--model=resnet50",
                 "--batch_size=16",
                 "--get_top_k=5",
                 "--target_mode=tag",
-                "--checkpoint=debug_dir/tagging/resnet/msebest.pt",
+                "--checkpoint=train_round2/face_attribute/resnet50/msebest.pt",
             ],
             "console": "integratedTerminal"
         },
