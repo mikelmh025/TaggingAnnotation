@@ -14,6 +14,7 @@ from search_algo  import search_algorithm
 import json
 import data_utils
 import cv2
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', type = float, default = 0.05)
@@ -125,7 +126,9 @@ def search_report2img(all_search_scores,all_search_reports, source_img_paths, id
     im_concat = data_utils.concat_list_image(out_list,out_titles)
     return im_concat, image_name
 
+
 def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_asset_names=None):
+    data_dict = {}
     batch_size = labels.shape[0]
 
     if args.target_mode == 'tag':
@@ -133,90 +136,68 @@ def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_
         label_tag_dict = tensor2tagDict(labels, index,label_index_dict)
         
         # Search asset
-        pred_search_scores, pred_search_reports = tag_search_asset(pred_tag_dict,index)
         label_search_scores, label_search_reports = tag_search_asset(label_tag_dict,index)
+        pred_search_scores, pred_search_reports = tag_search_asset(pred_tag_dict,index)
+        
 
         # Calculate accuracy / matching chance of pred and label
         # Using top 1 asset / top 5 assets
         # Option1: use min as the ground truth option, option2: use all the assets with min score as ground truth options
-        pred_top1_acc_strict, pred_top1_acc_relax = 0, 0
-        pred_top5_acc_strict, pred_top5_acc_relax = 0, 0
+        # pred_top1_acc_strict, pred_top1_acc_relax = 0, 0
+        # pred_top5_acc_strict, pred_top5_acc_relax = 0, 0
+
+        # pred_top1_acc_strict, pred_top5_acc_strict = 0, 0
 
         for key in pred_search_scores:
             target = list(label_search_scores[key].keys())[0] # option1
-            min_scores = min(list(label_search_scores[key].values()))
-            targets = [item for item in label_search_scores[key] if label_search_scores[key][item] == min_scores] # option2
+
+            pred_top1_score, pred_top5_score = list(pred_search_scores[key].values())[0], list(pred_search_scores[key].values())[0:5]
+            label_top1_score, label_top5_score = list(label_search_scores[key].values())[0], list(label_search_scores[key].values())[0:5]
+
+            pred_top1_dist, pred_top5_dist = pred_top1_score, sum(pred_top5_score)/len(pred_top5_score)
+            label_top1_dist, label_top5_dist = label_top1_score, sum(label_top5_score)/len(label_top5_score)
+            
 
             pred_assets = list(pred_search_scores[key].keys())
 
             # Top1 strict
-            if target in pred_assets[0]:
-                pred_top1_acc_strict += 1
-            # Top1 relax
-            if len(data_utils.intersection_list([pred_assets[0]], targets)) > 0:
-                pred_top1_acc_relax += 1
-
+            pred_top1_acc_strict = 1 if target in pred_assets[0]  else 0
             # Top5 strict
-            top_k=5
-            if target in pred_assets[:top_k]:
-                pred_top5_acc_strict += 1
-            # if len(list(set(pred[0:5]).intersection(set(targets)))) > 0:
-            if len(data_utils.intersection_list(pred_assets[0:top_k], targets)) > 0:
-                pred_top5_acc_relax += 1
-            # else:
-            #     cont_save_dir = str(args.result_dir)+'_failed'
-            #     os.makedirs(cont_save_dir, exist_ok=True)
-            #     im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
-            #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+            pred_top5_acc_strict = 1 if target in pred_assets[:5] else 0
+                
+
+            data_dict['pred_top1_acc_strict'] = data_dict['pred_top1_acc_strict']+pred_top1_acc_strict if 'pred_top1_acc_strict' in data_dict else pred_top1_acc_strict
+            data_dict['pred_top5_acc_strict'] = data_dict['pred_top5_acc_strict']+pred_top5_acc_strict if 'pred_top5_acc_strict' in data_dict else pred_top5_acc_strict
+
+            data_dict['pred_top1_dist'] =  data_dict['pred_top1_dist'] + pred_top1_dist if 'pred_top1_dist' in data_dict else pred_top1_dist
+            data_dict['pred_top5_dist'] =  data_dict['pred_top5_dist'] + pred_top5_dist if 'pred_top5_dist' in data_dict else pred_top5_dist
+            data_dict['label_top1_dist'] =  data_dict['label_top1_dist'] + label_top1_dist if 'label_top1_dist' in data_dict else label_top1_dist
+            data_dict['label_top5_dist'] =  data_dict['label_top5_dist'] + label_top5_dist if 'label_top5_dist' in data_dict else label_top5_dist
+
+        # Save images
+        # cont_save_dir = str(args.result_dir)
+        # os.makedirs(cont_save_dir, exist_ok=True)
+        # for key in pred_search_scores:
+        #     im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
+        #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+        #     for i in range(args.get_top_k):
+        #         single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+        #         os.makedirs(single_match_path, exist_ok=True)
+        #         matched_name = list(pred_search_scores[key].keys())[i]
+        #         image_name_ = image_name.split('.')[0]
+        #         save_name_ = image_name_+'_'+matched_name+'.jpg'
+        #         matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
+        #         cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
 
         
-        print("Known issue in the accuracy calculation:     1. # Search algorithm make sure there are enough options to match for top 5, top 10❗️❗️")
-        # Save images
-        cont_save_dir = str(args.result_dir)
-        os.makedirs(cont_save_dir, exist_ok=True)
-        for key in pred_search_scores:
-            im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
-            cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+        # # Save images
+        # cont_save_dir = str(args.result_dir)+'_label'
+        # os.makedirs(cont_save_dir, exist_ok=True)
+        # for key in label_search_scores:
+        #     im_concat, image_name = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
+        #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
 
-            for i in range(args.get_top_k):
-                single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
-                os.makedirs(single_match_path, exist_ok=True)
-                matched_name = list(pred_search_scores[key].keys())[i]
-                image_name_ = image_name.split('.')[0]
-                save_name_ = image_name_+'_'+matched_name+'.jpg'
-                matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
-                cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
-
-        
-        # Save images
-        cont_save_dir = str(args.result_dir)+'_label'
-        os.makedirs(cont_save_dir, exist_ok=True)
-        for key in label_search_scores:
-            im_concat, image_name = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
-            cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
-
-
-        # for key in all_scores:
-        #     human_path = source_img_paths[key]
-        #     image_name  = human_path.split('/')[-1]
-        #     matched_paths = []
-        #     for asset_key in all_scores[key]:
-        #         matched_paths.append(args.data_root+ 'asset/images/'+asset_key)
-        #     out_list = [human_path]+matched_paths
-        #     out_titles = ['']*len(out_list)
-
-        #     im_concat = data_utils.concat_list_image(out_list,out_titles)
-        #     cont_save_dir = str(args.result_dir)
-        #     os.makedirs(cont_save_dir, exist_ok=True)
-        #     cv2.imwrite(str(cont_save_dir+'/'+image_name), im_concat)
-
-            # for i in range(args.get_top_k):
-            #     single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
-            #     os.makedirs(single_match_path, exist_ok=True)
-            #     matched_name = matched_paths[i].split('/')[-1].split('.')[0]
-            #     image_name_ = image_name.split('.')[0]
-            #     save_name_ = image_name_+'_'+matched_name+'.jpg'
-            #     cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_paths[i]))
     elif args.target_mode == 'img':
         pred = pred.clone().detach().cpu().numpy()
         batch_size = pred.shape[0]
@@ -225,23 +206,47 @@ def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_
         
         outputs = F.softmax(pred, dim=1)
         _, pred = torch.max(outputs.data, 1)
+        
+        # get top 5 predictions from outputs
+        pred_top5 = torch.topk(outputs, 5, dim=1)[1]
 
-        matched_paths = []
-        save_dir =  str(args.result_dir)+'_'+args.target_mode
-        os.makedirs(save_dir, exist_ok=True)
+
+        # Calculate accuracy
+        # one hot label to index
+        labels = labels.clone().detach().cpu().numpy()
+        labels = np.argmax(labels, axis=1)
+        labels = torch.from_numpy(labels)
+        correct = (pred == labels).sum().item()
+        acc = correct / batch_size
+
+        # Calculate top5 accuracy
+        correct_top5 = 0
         for i in range(batch_size):
-            # all_asset_names[pred[i].item()]
-            matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred[i].item()]
-            matched_name  = matched_path_.split('/')[-1]
-            matched_paths += [matched_path_]
+            if labels[i] in pred_top5[i]:
+                correct_top5 += 1
+        acc_top5 = correct_top5 / batch_size
 
-            human_path = source_img_paths[index[i].item()]
-            image_name  = human_path.split('/')[-1].split('.')[0]
-            save_name_ = image_name+'_'+matched_name+'.jpg'
-            cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
+        data_dict['pred_top1_acc_strict'] = pred_top1_acc_strict
+        data_dict['pred_top5_acc_strict'] = pred_top5_acc_strict
+
+        # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax =  correct, correct, correct_top5, correct_top5
+
+        # matched_paths = []
+        # save_dir =  str(args.result_dir)+'_'+args.target_mode
+        # os.makedirs(save_dir, exist_ok=True)
+        # for i in range(batch_size):
+        #     # all_asset_names[pred[i].item()]
+        #     matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred[i].item()]
+        #     matched_name  = matched_path_.split('/')[-1]
+        #     matched_paths += [matched_path_]
+
+        #     human_path = source_img_paths[index[i].item()]
+        #     image_name  = human_path.split('/')[-1].split('.')[0]
+        #     save_name_ = image_name+'_'+matched_name+'.jpg'
+        #     cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
 
 
-    return pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
+    return  data_dict #pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
 
 
 def test(args, model, test_dataset,label_index_dict):
@@ -256,24 +261,33 @@ def test(args, model, test_dataset,label_index_dict):
 
     correct = 0
     total = 0
-
-    correct_counts = (0,0,0,0) # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
-    for i, (images, labels, index) in enumerate(test_loader):
+    compare_dict = {}
+    # correct_counts = (0,0,0,0) # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
+    for i, (images, labels, index) in tqdm(enumerate(test_loader)):
         if index[0].item() >=300: break
         images = images.to(args.device)
         labels = labels.to(args.device)
         outputs = model(images)
-        correct_counts_ = param2match(args, index, labels, outputs,label_index_dict,source_img_paths,all_asset_names)
-        correct_counts = tuple(map(sum, zip(correct_counts, correct_counts_)))
+        compare_dict_ = param2match(args, index, labels, outputs,label_index_dict,source_img_paths,all_asset_names)
+        # correct_counts = tuple(map(sum, zip(correct_counts, correct_counts_)))
         total += labels.size(0)
+        compare_dict = {key:value+compare_dict[key] if key in compare_dict else value for key,value in compare_dict_.items()}
     #     _, predicted = torch.max(outputs.data, 1)
     #     correct += (predicted == labels).sum().item()
     # print('Accuracy of the network on the test images: %d %%' % (100 * correct / total))
-    pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax = correct_counts
-    print('pred_top1_acc_strict: %.3f %%' % (100 * pred_top1_acc_strict / total))
-    print('pred_top1_acc_relax: %.3f %%' % (100 * pred_top1_acc_relax / total))
-    print('pred_top5_acc_strict: %.3f %%' % (100 * pred_top5_acc_strict / total))
-    print('pred_top5_acc_relax: %.3f %%' % (100 * pred_top5_acc_relax / total))
+    # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax = correct_counts
+
+
+    print('pred_top1_acc_strict: %.3f %%' % (100 * compare_dict['pred_top1_acc_strict'] / total))
+    print('pred_top5_acc_strict: %.3f %%' % (100 * compare_dict['pred_top5_acc_strict'] / total))
+
+    print('Pred top1 dist: %.3f' % (compare_dict['pred_top1_dist'] / total))
+    print('Pred top5 dist: %.3f' % (compare_dict['pred_top5_dist'] / total))
+    print('Label top1 dist: %.3f' % (compare_dict['label_top1_dist'] / total))
+    print('Label top5 dist: %.3f' % (compare_dict['label_top5_dist'] / total))
+
+    # print('pred_top1_acc_relax: %.3f %%' % (100 * pred_top1_acc_relax / total))
+    # print('pred_top5_acc_relax: %.3f %%' % (100 * pred_top5_acc_relax / total))
 
     return
 
@@ -326,3 +340,145 @@ def main(args):
 if __name__ == '__main__':
     args = parser.parse_args()
     main(args)
+
+
+
+# Past version: 10/30/2022 8:53pm
+
+# def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_asset_names=None):
+#     batch_size = labels.shape[0]
+
+#     if args.target_mode == 'tag':
+#         pred_tag_dict = tensor2tagDict(pred, index,label_index_dict)
+#         label_tag_dict = tensor2tagDict(labels, index,label_index_dict)
+        
+#         # Search asset
+#         label_search_scores, label_search_reports = tag_search_asset(label_tag_dict,index)
+#         pred_search_scores, pred_search_reports = tag_search_asset(pred_tag_dict,index)
+        
+
+#         # Calculate accuracy / matching chance of pred and label
+#         # Using top 1 asset / top 5 assets
+#         # Option1: use min as the ground truth option, option2: use all the assets with min score as ground truth options
+#         pred_top1_acc_strict, pred_top1_acc_relax = 0, 0
+#         pred_top5_acc_strict, pred_top5_acc_relax = 0, 0
+
+#         for key in pred_search_scores:
+#             target = list(label_search_scores[key].keys())[0] # option1
+#             # min_scores = min(list(label_search_scores[key].values()))
+#             # targets = [item for item in label_search_scores[key] if label_search_scores[key][item] == min_scores] # option2
+#             # min_scores = list(label_search_scores[key].values())[0] # Using the score of first one as min score. However if we want to do multi layer search need to find another way.
+#             # targets = []
+#             # for item in label_search_scores[key]:
+#             #     if label_search_scores[key][item] == min_scores:
+#             #         targets.append(item)
+#             #     else:
+#             #         break
+            
+#             pred_top1_score, pred_top5_score = [list(label_search_scores[key].values())[0]], list(label_search_scores[key].values())[0:5]
+#             label_top1_score, label_top5_score = [list(label_search_scores[key].values())[0]], list(label_search_scores[key].values())[0:5]
+
+#             pred_top1_dist, pred_top5_dist = pred_top1_score, sum(pred_top5_score)/len(pred_top5_score)
+#             label_top1_dist, label_top5_dist = label_top1_score, sum(label_top5_score)/len(label_top5_score)
+            
+
+#             pred_assets = list(pred_search_scores[key].keys())
+
+#             # Top1 strict
+#             if target in pred_assets[0]: pred_top1_acc_strict += 1
+                
+
+#             # # Top1 relax
+#             # if len(data_utils.intersection_list([pred_assets[0]], targets)) > 0:
+#             #     pred_top1_acc_relax += 1
+
+#             # Top5 strict
+#             if target in pred_assets[:5]: pred_top5_acc_strict += 1
+                
+                
+#             # # Top5 relax
+#             # if len(data_utils.intersection_list(pred_assets[0:top_k], targets)) > 0:
+#             #     pred_top5_acc_relax += 1
+#             # else:
+#             #     cont_save_dir = str(args.result_dir)+'_failed'
+#             #     os.makedirs(cont_save_dir, exist_ok=True)
+#             #     im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
+#             #     im_concat2, image_name2 = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
+#             #     # vertical concat im_concat and im_concat2
+#             #     im_concat = data_utils.vertical_cat([im_concat,im_concat2])
+#             #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+        
+#         print("Known issue in the accuracy calculation:     1. # Search algorithm make sure there are enough options to match for top 5, top 10❗️❗️")
+#         # # Save images
+#         # cont_save_dir = str(args.result_dir)
+#         # os.makedirs(cont_save_dir, exist_ok=True)
+#         # for key in pred_search_scores:
+#         #     im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
+#         #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+#         #     for i in range(args.get_top_k):
+#         #         single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+#         #         os.makedirs(single_match_path, exist_ok=True)
+#         #         matched_name = list(pred_search_scores[key].keys())[i]
+#         #         image_name_ = image_name.split('.')[0]
+#         #         save_name_ = image_name_+'_'+matched_name+'.jpg'
+#         #         matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
+#         #         cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
+
+        
+#         # # Save images
+#         # cont_save_dir = str(args.result_dir)+'_label'
+#         # os.makedirs(cont_save_dir, exist_ok=True)
+#         # for key in label_search_scores:
+#         #     im_concat, image_name = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
+#         #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+
+#     elif args.target_mode == 'img':
+#         pred = pred.clone().detach().cpu().numpy()
+#         batch_size = pred.shape[0]
+#         # change pred from np array to tensor
+#         pred = torch.from_numpy(pred)
+        
+#         outputs = F.softmax(pred, dim=1)
+#         _, pred = torch.max(outputs.data, 1)
+        
+#         # get top 5 predictions from outputs
+#         pred_top5 = torch.topk(outputs, 5, dim=1)[1]
+
+
+#         # Calculate accuracy
+#         # one hot label to index
+#         labels = labels.clone().detach().cpu().numpy()
+#         labels = np.argmax(labels, axis=1)
+#         labels = torch.from_numpy(labels)
+#         correct = (pred == labels).sum().item()
+#         acc = correct / batch_size
+
+#         # Calculate top5 accuracy
+#         correct_top5 = 0
+#         for i in range(batch_size):
+#             if labels[i] in pred_top5[i]:
+#                 correct_top5 += 1
+#         acc_top5 = correct_top5 / batch_size
+
+
+#         pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax =  correct, correct, correct_top5, correct_top5
+#         a=1
+
+#         # matched_paths = []
+#         # save_dir =  str(args.result_dir)+'_'+args.target_mode
+#         # os.makedirs(save_dir, exist_ok=True)
+#         # for i in range(batch_size):
+#         #     # all_asset_names[pred[i].item()]
+#         #     matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred[i].item()]
+#         #     matched_name  = matched_path_.split('/')[-1]
+#         #     matched_paths += [matched_path_]
+
+#         #     human_path = source_img_paths[index[i].item()]
+#         #     image_name  = human_path.split('/')[-1].split('.')[0]
+#         #     save_name_ = image_name+'_'+matched_name+'.jpg'
+#         #     cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
+
+
+#     return pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax

@@ -241,21 +241,59 @@ class search_algorithm ():
     # output out_dis_scores{asset_key: int dis_sum}, out_dis_reports{asset_key: dict dis_dict}
     def multi_round_search(self,human_label,asset_data,
                             attr_care = ['top_curly','side_curly'],search_top=15):
+
+        trimed_scores, trimed_reports = {}, {}
+
         # Inital round of search    
         dis_scores1, dis_reports1 = self.search_all_assets(human_label,asset_data)
 
         # Trim asset pool based on round one search
         round2_dict = {key:value for idx, (key, value) in enumerate(dis_scores1.items()) if idx < search_top}
-        asset_data_trimed = {key:value for key, value in asset_data.items() if key in round2_dict.keys()}
-            
+        asset_data_trimed = {key:value for key, value in asset_data.items() if key in round2_dict.keys()}            
         # Second round of search
         dis_scores2, dis_reports2 = self.search_all_assets(human_label,asset_data_trimed, attr_care=attr_care)
 
+        # Collect trimed assets
+        # Option 1: only collect and do nothing, keep original order
+        # Option 2: sort them also
+        trimed_scores ={key:value for key,value in dis_scores1.items() if key not in dis_scores2.keys()}
+        trimed_reports ={key:value for key,value in dis_reports1.items() if key not in dis_reports2.keys()}
+
+        # Trim asset pool based on round two search
         min_score = min(dis_scores2.values())
         asset_data_trimed2 = {key:value for key, value in asset_data_trimed.items() if dis_scores2[key] == min_score}
         dis_scores3, dis_reports3 = self.search_all_assets(human_label,asset_data_trimed2)
 
+        # Collect trimed assets
+        trimed_scores = {**{key:value for key,value in dis_scores1.items() if key not in dis_scores3.keys()}, **trimed_scores}
+        trimed_reports = {**{key:value for key,value in dis_reports1.items() if key not in dis_reports3.keys()}, **trimed_reports}
+
         out_dis_scores, out_dis_reports = dis_scores3, dis_reports3
+
+        # Output complete ranking
+        out_dis_scores, out_dis_reports = {**out_dis_scores, **trimed_scores}, {**out_dis_reports, **trimed_reports}
+
+        prev_socre,adjust = -1,0
+        for key in out_dis_scores:
+            cur_score = out_dis_scores[key]
+            if prev_socre <= cur_score:
+                prev_socre = cur_score
+            else:
+                adjust = cur_score
+            out_dis_scores[key] += adjust
+            out_dis_reports[key]['total'] += adjust
+            out_dis_reports[key]['adjust'] = adjust
+
+
+        prev_socre = 0
+        for key in out_dis_scores:
+            assert out_dis_scores[key] == out_dis_reports[key]['total']
+            if prev_socre <= cur_score:
+                prev_socre = cur_score
+            else:
+                print('Error: score not sorted')
+                # break
+
 
         return out_dis_scores, out_dis_reports
 
