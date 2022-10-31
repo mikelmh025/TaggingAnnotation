@@ -11,11 +11,13 @@ url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/Data_HITL_navi/'
 human_dir = 'test'
 mode = 'matching'
 # mode = 'subjective'
-mode = 'dual'
+# mode = 'dual'
 # mode = ['matching','subjective','dual']
 
-match_options = 4
-match_counter_dist_thredhold = 5
+save_template_tests = False
+
+match_options = 6
+match_counter_dist_thredhold = 7
 
 csv_save_dir = 'turk_csv/'
 if not os.path.exists(os.path.join(root,csv_save_dir)):
@@ -42,9 +44,9 @@ if not os.path.exists(os.path.join(root,csv_save_dir)):
 target_dir_dict = {
     'test_tag_bd':['aggre'],
     'test_direct_pred':[],
-    'test_tag_pred':[],
+    'test_tag_pred':['top1'],
     'test_tag_turk':[],
-    'test_direct_bd':['test_mapped3'],
+    'test_direct_bd':[],
     'test_direct_turk':[],
     'test_other1_pred':[],
     'test_other2_pred':[],
@@ -204,6 +206,7 @@ if 'matching' in mode:
 
                 ''' If no template, create one by randonly selecting counter samples '''
                 if human_name not in template_dict:
+                    assert "tag_bd" in target_dir and 'aggre' in target_subdir, "tag_bd_aggre must be done first"
                     # Get other images
                     other_image_paths = target_image_paths.copy()
                     other_image_paths.remove(target_image_path)
@@ -216,6 +219,8 @@ if 'matching' in mode:
                         asset_ = asset_data[other_image_target+'.png']
                         human_ = human_data[human_name]
                         dis_dict_corr, dis_sum_corr = algo.eval_distance(human_, asset_)
+                        dis_dict_corr2, dis_sum_corr2 = algo.eval_distance_specific(human_, asset_,['top_curly','side_curly'])
+                        dis_sum_corr += dis_sum_corr2*0.5
 
                         if dis_sum_corr >= match_counter_dist_thredhold:
                             other_image_paths_selected.append(other_image_path)
@@ -242,6 +247,9 @@ if 'matching' in mode:
                             assert os.path.exists(counter_case_path_), counter_case_path_
                             counter_case_url_ = counter_case_path_.replace(root, url_root)
                             all_options[i] = counter_case_url_
+
+                if not save_template_tests and "tag_bd" in target_dir and 'aggre' in target_subdir:
+                    continue
 
                 buffer_list += all_options
                 if len(buffer_list) == len(header):

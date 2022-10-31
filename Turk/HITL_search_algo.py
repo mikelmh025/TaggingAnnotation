@@ -17,7 +17,7 @@ import collections
 # print(set(a).difference(set(b)))
 # print(set(b).difference(set(a)))
 
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/dual_run2/'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/dual_run4/'
 # label_csv = root + 'Batch_4912817_batch_results.csv'
 # label_csv = root + 'pred_dual.csv'
 label_csv = root + 'bd_dual.csv'
@@ -195,8 +195,8 @@ for case in vote_dict:
             else:
                 max_key = '0'
 
-    # if asset_name1 == asset_name2 : # denoise when the two methods are the same
-    #     max_key = '3'
+    if asset_name1 == asset_name2 : # denoise when the two methods are the same
+        max_key = '3'
     
     save_image = False
     if max_key == '0':
@@ -219,7 +219,7 @@ for case in vote_dict:
         correct_dict[method_name2] = [correct_dict[method_name2][0]+1, correct_dict[method_name2][1]+1]
         method2_fail_counter += 1
         method2_fail_dict[input_name] = vote_dict[input_human_]
-        # save_image = True
+        save_image = True
     elif max_key == '3':
         correct_dict[method_name1] = [correct_dict[method_name1][0]+1, correct_dict[method_name1][1]+1]
         correct_dict[method_name2] = [correct_dict[method_name2][0]+1, correct_dict[method_name2][1]+1]
