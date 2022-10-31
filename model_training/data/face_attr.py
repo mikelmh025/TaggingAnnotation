@@ -57,13 +57,14 @@ class face_attributes(data.Dataset):
     # Root of single types of dataset
 
     #TODO: init too slow
-    def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train_mode='train',debug_num=16):
+    def __init__(self, root, human_dir, transform=None, debug=False, target_mode='tag',train_mode='train',debug_num=16,extra_info=None):
         self.root = root
         self.train_mode = train_mode
         self.human_dir = os.path.join(root, human_dir)
         self.asset_dir = os.path.join(root, 'asset')
         self.target_mode = target_mode
         self.tag_info()
+        self.extra_info = extra_info
         
         self.transform = transform  
         self.debug = debug
@@ -142,20 +143,22 @@ class face_attributes(data.Dataset):
         return len(self.source_img_paths)
         
          
-    def __getitem__(self, index, extra_info=False):
+    def __getitem__(self, index):
         source_img_path = self.source_img_paths[index]
         source_img = self.transform(Image.open(source_img_path).convert('RGB'))
         source_img_name = source_img_path.split('/')[-1].split('.')[0]#+'.png'
 
-        if self.target_mode == 'tag':
-            label = self.source_img_label_cant_dict[source_img_name]
-            label = torch.FloatTensor(label)
-        elif self.target_mode == 'img':
-            # label = self.match_asset[index] # TODO convert to one hot
-            label = self.match_asset_one_hot[index]
-            label = torch.FloatTensor(label)
+        tag = torch.FloatTensor(self.source_img_label_cant_dict[source_img_name])
+        direct = torch.FloatTensor(self.match_asset_one_hot[index])
+    
+        label = tag if self.target_mode == 'tag' else direct
         
-        return source_img, label, index
+        if self.extra_info== 'tag':
+            return source_img, label, index, tag
+        elif self.extra_info == 'img':
+            return source_img, label, index, direct
+        else:
+            return source_img, label, index
 
     def get_index_dict(self):
         return self.index_dict

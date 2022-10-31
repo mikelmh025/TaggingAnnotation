@@ -1,6 +1,7 @@
 
 
 # -*- coding:utf-8 -*-
+import enum
 import os
 import torch
 import torch.nn.functional as F
@@ -127,9 +128,18 @@ def search_report2img(all_search_scores,all_search_reports, source_img_paths, id
     return im_concat, image_name
 
 
-def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_asset_names=None):
+def param2match(labels, pred,extra_info_dict):
     data_dict = {}
     batch_size = labels.shape[0]
+
+    index = extra_info_dict['index']
+    label_index_dict = extra_info_dict['label_index_dict']
+    source_img_paths = extra_info_dict['source_img_paths']
+    all_asset_names = extra_info_dict['all_asset_names']
+    extra_label = extra_info_dict['extra_label']
+    args = extra_info_dict['args']
+    asset_label_dict = extra_info_dict['asset_label_dict']
+    
 
     if args.target_mode == 'tag':
         pred_tag_dict = tensor2tagDict(pred, index,label_index_dict)
@@ -141,13 +151,6 @@ def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_
         
 
         # Calculate accuracy / matching chance of pred and label
-        # Using top 1 asset / top 5 assets
-        # Option1: use min as the ground truth option, option2: use all the assets with min score as ground truth options
-        # pred_top1_acc_strict, pred_top1_acc_relax = 0, 0
-        # pred_top5_acc_strict, pred_top5_acc_relax = 0, 0
-
-        # pred_top1_acc_strict, pred_top5_acc_strict = 0, 0
-
         for key in pred_search_scores:
             target = list(label_search_scores[key].keys())[0] # option1
 
@@ -217,17 +220,35 @@ def param2match(args, index, labels, pred,label_index_dict,source_img_paths,all_
         labels = np.argmax(labels, axis=1)
         labels = torch.from_numpy(labels)
         correct = (pred == labels).sum().item()
-        acc = correct / batch_size
 
         # Calculate top5 accuracy
-        correct_top5 = 0
-        for i in range(batch_size):
-            if labels[i] in pred_top5[i]:
-                correct_top5 += 1
-        acc_top5 = correct_top5 / batch_size
+        correct_top5 = sum([i if labels[i] in pred_top5[i] else 0 for i in range(batch_size)])
+        
+        data_dict['pred_top1_acc_strict'] = correct
+        data_dict['pred_top5_acc_strict'] = correct_top5
 
-        data_dict['pred_top1_acc_strict'] = pred_top1_acc_strict
-        data_dict['pred_top5_acc_strict'] = pred_top5_acc_strict
+        human_tags = tensor2tagDict(extra_label, index,label_index_dict)
+        for idx, key in enumerate(human_tags):
+            outputs_ = outputs[idx]
+            human_tag = human_tags[key]
+
+            # get top1 prediction
+            pred_top1_ = asset_label_dict[all_asset_names[pred[idx].item()]+'.png']
+            pred_top1_dict_ = {'0':pred_top1_}
+
+            # get top5 predictions
+            pred_top5_ = torch.topk(outputs_, 5, dim=0)[1]  
+            pred_top5_dict_ = {str(idx):asset_label_dict[all_asset_names[item]+'.png'] for idx, item in enumerate(pred_top5_)}
+
+            
+            
+            search_scores_1, search_reports_1 = algo.multi_round_search(human_tag,pred_top1_dict_)
+            search_scores_5, search_reports_5 = algo.multi_round_search(human_tag,pred_top5_dict_)
+
+            pred_top1_dist, pred_top5_dist = sum(list(search_scores_1.values())), sum(list(search_scores_5.values()))
+            a=1
+            data_dict['pred_top1_dist'] =  data_dict['pred_top1_dist'] + pred_top1_dist if 'pred_top1_dist' in data_dict else pred_top1_dist
+            data_dict['pred_top5_dist'] =  data_dict['pred_top5_dist'] + pred_top5_dist if 'pred_top5_dist' in data_dict else pred_top5_dist
 
         # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax =  correct, correct, correct_top5, correct_top5
 
@@ -259,16 +280,28 @@ def test(args, model, test_dataset,label_index_dict):
     except:
         all_asset_names = None
 
+    asset_label_dict = test_dataset.asset_label_dict
+
     correct = 0
     total = 0
     compare_dict = {}
     # correct_counts = (0,0,0,0) # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
-    for i, (images, labels, index) in tqdm(enumerate(test_loader)):
+    for i, (images, labels, index,extra_label) in tqdm(enumerate(test_loader)):
         if index[0].item() >=300: break
         images = images.to(args.device)
         labels = labels.to(args.device)
         outputs = model(images)
-        compare_dict_ = param2match(args, index, labels, outputs,label_index_dict,source_img_paths,all_asset_names)
+
+        extra_info_dict = {
+            'index': index,
+            'source_img_paths': source_img_paths,
+            'all_asset_names': all_asset_names,
+            'label_index_dict': label_index_dict,
+            'args': args,
+            'extra_label': extra_label,
+            'asset_label_dict': asset_label_dict
+        }
+        compare_dict_ = param2match(labels, outputs, extra_info_dict)
         # correct_counts = tuple(map(sum, zip(correct_counts, correct_counts_)))
         total += labels.size(0)
         compare_dict = {key:value+compare_dict[key] if key in compare_dict else value for key,value in compare_dict_.items()}
@@ -277,14 +310,20 @@ def test(args, model, test_dataset,label_index_dict):
     # print('Accuracy of the network on the test images: %d %%' % (100 * correct / total))
     # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax = correct_counts
 
+    if 'pred_top1_acc_strict' in compare_dict:
+        print('pred_top1_acc_strict: %.3f %%' % (100 * compare_dict['pred_top1_acc_strict'] / total))
+    if 'pred_top5_acc_strict' in compare_dict:
+        print('pred_top5_acc_strict: %.3f %%' % (100 * compare_dict['pred_top5_acc_strict'] / total))
 
-    print('pred_top1_acc_strict: %.3f %%' % (100 * compare_dict['pred_top1_acc_strict'] / total))
-    print('pred_top5_acc_strict: %.3f %%' % (100 * compare_dict['pred_top5_acc_strict'] / total))
-
-    print('Pred top1 dist: %.3f' % (compare_dict['pred_top1_dist'] / total))
-    print('Pred top5 dist: %.3f' % (compare_dict['pred_top5_dist'] / total))
-    print('Label top1 dist: %.3f' % (compare_dict['label_top1_dist'] / total))
-    print('Label top5 dist: %.3f' % (compare_dict['label_top5_dist'] / total))
+    if 'pred_top1_dist' in compare_dict:
+        print('Pred top1 dist: %.3f' % (compare_dict['pred_top1_dist'] / total))
+    if 'pred_top5_dist' in compare_dict:
+        print('Pred top5 dist: %.3f' % (compare_dict['pred_top5_dist'] / total))
+    
+    if 'label_top1_dist' in compare_dict:
+        print('Label top1 dist: %.3f' % (compare_dict['label_top1_dist'] / total))
+    if 'label_top5_dist' in compare_dict:
+        print('Label top5 dist: %.3f' % (compare_dict['label_top5_dist'] / total))
 
     # print('pred_top1_acc_relax: %.3f %%' % (100 * pred_top1_acc_relax / total))
     # print('pred_top5_acc_relax: %.3f %%' % (100 * pred_top5_acc_relax / total))

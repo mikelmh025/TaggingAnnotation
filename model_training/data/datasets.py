@@ -160,7 +160,7 @@ def input_dataset_face_attr_test(args, dataset,root=None):
         root = args.data_root
         human_dir = args.human_dataset
         debug = args.debug
-        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='test',target_mode=args.target_mode,transform=face_attr_transform)
+        test_dataset = face_attributes(root,human_dir,debug=debug,train_mode='test',target_mode=args.target_mode,transform=face_attr_transform,extra_info='tag')
 
         num_classes = test_dataset.num_classes
         num_training_samples = test_dataset.__len__()
