@@ -24,7 +24,7 @@
                 "--loss=mse",
                 "--model=resnet50",
                 "--batch_size=16",
-                "--get_top_k=15",
+                "--get_top_k=5",
                 "--target_mode=tag",
                 "--checkpoint=train_round2/face_attribute/resnet50/msebest.pt",
             ],

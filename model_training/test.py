@@ -178,28 +178,28 @@ def param2match(labels, pred,extra_info_dict):
             data_dict['label_top5_dist'] =  data_dict['label_top5_dist'] + label_top5_dist if 'label_top5_dist' in data_dict else label_top5_dist
 
         # Save images
-        # cont_save_dir = str(args.result_dir)
-        # os.makedirs(cont_save_dir, exist_ok=True)
-        # for key in pred_search_scores:
-        #     im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
-        #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+        cont_save_dir = str(args.result_dir)
+        os.makedirs(cont_save_dir, exist_ok=True)
+        for key in pred_search_scores:
+            im_concat, image_name = search_report2img(pred_search_scores,pred_search_reports, source_img_paths, key, args=args)
+            cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
 
-        #     for i in range(args.get_top_k):
-        #         single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
-        #         os.makedirs(single_match_path, exist_ok=True)
-        #         matched_name = list(pred_search_scores[key].keys())[i]
-        #         image_name_ = image_name.split('.')[0]
-        #         save_name_ = image_name_+'_'+matched_name+'.jpg'
-        #         matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
-        #         cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
+            for i in range(args.get_top_k):
+                single_match_path = os.path.join(cont_save_dir, 'top'+str(i+1))
+                os.makedirs(single_match_path, exist_ok=True)
+                matched_name = list(pred_search_scores[key].keys())[i]
+                image_name_ = image_name.split('.')[0]
+                save_name_ = image_name_+'_'+matched_name+'.jpg'
+                matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
+                cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
 
         
-        # # Save images
-        # cont_save_dir = str(args.result_dir)+'_label'
-        # os.makedirs(cont_save_dir, exist_ok=True)
-        # for key in label_search_scores:
-        #     im_concat, image_name = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
-        #     cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
+        # Save images
+        cont_save_dir = str(args.result_dir)+'_label'
+        os.makedirs(cont_save_dir, exist_ok=True)
+        for key in label_search_scores:
+            im_concat, image_name = search_report2img(label_search_scores,label_search_reports, source_img_paths, key, args=args)
+            cv2.imwrite(os.path.join(cont_save_dir,image_name), im_concat)
 
     elif args.target_mode == 'img':
         pred = pred.clone().detach().cpu().numpy()
@@ -252,19 +252,27 @@ def param2match(labels, pred,extra_info_dict):
 
         # pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax =  correct, correct, correct_top5, correct_top5
 
-        # matched_paths = []
-        # save_dir =  str(args.result_dir)+'_'+args.target_mode
-        # os.makedirs(save_dir, exist_ok=True)
-        # for i in range(batch_size):
-        #     # all_asset_names[pred[i].item()]
-        #     matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred[i].item()]
-        #     matched_name  = matched_path_.split('/')[-1]
-        #     matched_paths += [matched_path_]
+        matched_paths = []
+        save_dir =  str(args.result_dir)+'_'+args.target_mode
+        os.makedirs(save_dir, exist_ok=True)
+        for i in range(batch_size):
+            # all_asset_names[pred[i].item()]
+            matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred[i].item()]
+            matched_name  = matched_path_.split('/')[-1]
+            matched_paths += [matched_path_]
 
-        #     human_path = source_img_paths[index[i].item()]
-        #     image_name  = human_path.split('/')[-1].split('.')[0]
-        #     save_name_ = image_name+'_'+matched_name+'.jpg'
-        #     cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
+            human_path = source_img_paths[index[i].item()]
+            image_name  = human_path.split('/')[-1].split('.')[0]
+            save_name_ = image_name+'_'+matched_name+'.jpg'
+            cv2.imwrite(str(save_dir+'/'+save_name_), cv2.imread(matched_path_+'.png'))
+
+            for j in range(5):
+                single_match_path = os.path.join(save_dir, 'top'+str(j+1))
+                os.makedirs(single_match_path, exist_ok=True)
+                topk_matched_path_ = args.data_root+ 'asset/images/'+all_asset_names[pred_top5[i][j]]
+                topk_matched_name  = topk_matched_path_.split('/')[-1]
+                save_name_ = image_name+'_'+topk_matched_name+'.jpg'
+                cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(topk_matched_path_+'.png'))
 
 
     return  data_dict #pred_top1_acc_strict, pred_top1_acc_relax, pred_top5_acc_strict, pred_top5_acc_relax
