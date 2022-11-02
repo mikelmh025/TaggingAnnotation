@@ -312,21 +312,22 @@ class search_algorithm ():
         else:
             huamn_path = huamn_path
 
-        # Inital round of search    
-        dis_scores1, dis_reports1 = self.search_all_assets(human_label,asset_data)
+        out_dis_scores, out_dis_reports = self.multi_round_search(human_label,asset_data)
+        # # Inital round of search    
+        # dis_scores1, dis_reports1 = self.search_all_assets(human_label,asset_data)
 
-        # Trim asset pool based on round one search
-        round2_dict = {key:value for idx, (key, value) in enumerate(dis_scores1.items()) if idx < search_top}
-        asset_data_trimed = {key:value for key, value in asset_data.items() if key in round2_dict.keys()}
+        # # Trim asset pool based on round one search
+        # round2_dict = {key:value for idx, (key, value) in enumerate(dis_scores1.items()) if idx < search_top}
+        # asset_data_trimed = {key:value for key, value in asset_data.items() if key in round2_dict.keys()}
             
-        # Second round of search
-        dis_scores2, dis_reports2 = self.search_all_assets(human_label,asset_data_trimed, attr_care=attr_care)
+        # # Second round of search
+        # dis_scores2, dis_reports2 = self.search_all_assets(human_label,asset_data_trimed, attr_care=attr_care)
 
-        min_score = min(dis_scores2.values())
-        asset_data_trimed2 = {key:value for key, value in asset_data_trimed.items() if dis_scores2[key] == min_score}
-        dis_scores3, dis_reports3 = self.search_all_assets(human_label,asset_data_trimed2)
+        # min_score = min(dis_scores2.values())
+        # asset_data_trimed2 = {key:value for key, value in asset_data_trimed.items() if dis_scores2[key] == min_score}
+        # dis_scores3, dis_reports3 = self.search_all_assets(human_label,asset_data_trimed2)
 
-        out_dis_scores, out_dis_reports = dis_scores3, dis_reports3
+        # out_dis_scores, out_dis_reports = dis_scores3, dis_reports3
 
         # out_dis_scores, out_dis_reports = dis_scores2, dis_reports2
 
@@ -341,12 +342,15 @@ class search_algorithm ():
         out_titles = ['']
         for case in out_dis_scores:
             
-            r1_report = [attr + ' ' + str(round(dis_reports1[case][attr],2)) + ' \n' for attr in dis_reports1[case] if dis_reports1[case][attr] != 0 and attr not in attr_care] 
-            r1_report = ''.join(r1_report)
-            r2_report = [attr + ' ' + str(round(dis_reports2[case][attr],2)) + ' \n' for attr in dis_reports2[case] if dis_reports2[case][attr] != 0]
-            r2_report = ''.join(r2_report)
+            # r1_report = [attr + ' ' + str(round(dis_reports1[case][attr],2)) + ' \n' for attr in dis_reports1[case] if dis_reports1[case][attr] != 0 and attr not in attr_care] 
+            # r1_report = ''.join(r1_report)
+            # r2_report = [attr + ' ' + str(round(dis_reports2[case][attr],2)) + ' \n' for attr in dis_reports2[case] if dis_reports2[case][attr] != 0]
+            # r2_report = ''.join(r2_report)
 
-            title_  = 'R1: \n' + r1_report + 'R2: \n' + r2_report
+            # title_  = 'R1: \n' + r1_report + 'R2: \n' + r2_report
+            report_ = [attr + ' ' + str(round(out_dis_reports[case][attr],2)) + ' \n' for attr in out_dis_reports[case] if out_dis_reports[case][attr] != 0 and attr not in attr_care] 
+            report_ = ''.join(report_)
+            title_  = 'erport \n' + report_
             out_titles.append(title_)
 
 

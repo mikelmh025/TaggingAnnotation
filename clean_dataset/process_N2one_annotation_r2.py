@@ -13,8 +13,8 @@ label_image_dir = 'FairFace2.0/' #'v3/'#
 
 image_subset = 'test'
 
-human_names = ['all_results_individual_1','all_results_individual_2','all_results_individual_3','all_results_soft']
-# human_names = ['all_results_soft']
+# human_names = ['all_results_individual_1','all_results_individual_2','all_results_individual_3','all_results_soft']
+human_names = ['all_results_soft']
 
 # Bitmoji
 asset_json_path = root + 'asset/820_faceattribute_round2_asset_translate_soft.json'
@@ -24,17 +24,27 @@ asset_dir       = root + 'asset/images'
 # asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/google_cartoon_results_soft_labels.json'
 # asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/google_cartoon_single'
 
-# Metahuman
+# Metahuman (Female/male same tags)
 # asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_results_soft_labels.json'
-# asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman'
+# asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_female'
+# asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_male'
+
+# NovelAI male (Female/male different tags)
+# asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/NovelAI_male_results_soft_labels.json'
+# asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/NovelAI_male'
+
+# NovelAI female (Female/male different tags)
+# asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/NovelAI_female_results_soft_labels.json'
+# asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/NovelAI_female'
+
 
 image_pre_fix = ''
 human_image_dir = root + label_image_dir + image_subset
 human_image_paths = data_utils.make_im_set(human_image_dir)
 
-show_top = 5
-search_top = 5
-assert search_top>=show_top
+show_top = 200
+# search_top = 5
+# assert search_top>=show_top
 
 # Manual
 # bitmoji_auto_dir = root + 'asset/3_bitmoji_auto'
@@ -83,11 +93,11 @@ for human_name in tqdm(human_names):
                 attr_care = ['top_curly','side_curly'],search_top=15, show_top=5)
         
         if save_match_img:
-            '''Concatenated version'''
-            im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles=matched_titles)
-            cont_save_dir = str(save_dir)+'_concatenate'
-            os.makedirs(cont_save_dir, exist_ok=True)
-            cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+            # '''Concatenated version'''
+            # im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles=matched_titles)
+            # cont_save_dir = str(save_dir)+'_concatenate'
+            # os.makedirs(cont_save_dir, exist_ok=True)
+            # cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
 
             '''Individual save'''
             match_save_dir = str(save_dir)+'_match'
@@ -96,6 +106,14 @@ for human_name in tqdm(human_names):
             paired_image_name = matched_asset_paths[1].split('/')[-1].split('.')[0]
             cv2.imwrite(str(match_save_dir+'/'+image_name+'_'+paired_image_name+'.jpg'), paired_image)
 
+            for top_i in range(1,show_top+1):
+                top_save_dir = str(save_dir)+'_top'+str(top_i)
+                os.makedirs(top_save_dir, exist_ok=True)
+                top_image = cv2.imread(matched_asset_paths[top_i])
+                top_image_name = matched_asset_paths[top_i].split('/')[-1].split('.')[0]
+                cv2.imwrite(str(top_save_dir+'/'+image_name+'_'+top_image_name+'.jpg'), top_image)
+
+        # if coutner >= 100: break
         
             
 

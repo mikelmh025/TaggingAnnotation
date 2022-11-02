@@ -14,7 +14,11 @@ save_match_img = True
 
 root = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/'
 # label_csv = root + 'google_cartoon_results.csv'
-label_csv = root + 'metahuman_results.csv'
+# label_csv = root + 'metahuman_results.csv'
+# label_csv = root + 'NovelAI_female_results.csv'
+label_csv = root + 'NovelAI_male_results.csv'
+
+
 
 save_dir = root
 # image_subset = 'test'
@@ -90,6 +94,8 @@ for case in data_dict:
         all_soft_labels[case] = {}
         all_time_dict[case]   = {}
 
+
+
     for worker_idx, worker_ in enumerate(data_dict[case]):
 
 
@@ -114,7 +120,8 @@ for case in data_dict:
                 selected = str(int(worker_[key][item]['option'].replace('option','')) - 1)
                 soft_label[combined_key] = {selected:1}
                 time_dict[combined_key] = worker_[key][item]['time']
-        
+        if soft_label == {} and time_dict == {}:
+            continue
         all_soft_labels[case][worker_idx] = soft_label
         all_time_dict[case][worker_idx] = time_dict
 
@@ -200,6 +207,7 @@ for i in range(4):
 
     turker_soft_labels_ = {}
     for key in all_soft_labels:
+        
         try:    
             turker_soft_labels_[key] = all_soft_labels[key][i]
         except:
@@ -208,6 +216,7 @@ for i in range(4):
             except:
                 print(key, all_soft_labels[key])
                 raise
+
     # matched_dict[i] = {}
 
     # for human_key in turker_soft_labels_:

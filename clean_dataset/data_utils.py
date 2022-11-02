@@ -5,6 +5,10 @@ import numpy as np
 import cv2
 from os.path import exists
 
+from typing import Optional, Tuple
+
+import cv2
+import numpy as np
 IMAGE_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG','png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP', '.tiff', '.TIFF'
 ]
@@ -136,7 +140,7 @@ def most_frequent(List):
  
     return [num]
 
-def concat_list_image(matched_asset_paths,matched_titles=None):
+def concat_list_image(matched_asset_paths,matched_titles=None,sub_plot_size=None):
     if matched_titles == None:
         matched_titles = ['']*len(matched_asset_paths)
     # assert len(matched_asset_paths) > 0, "No matched asset found"
@@ -162,9 +166,12 @@ def concat_list_image(matched_asset_paths,matched_titles=None):
     resized_imgs = []
     
     for idx, img in enumerate(imgs):
-        ratio = max_height/img.shape[0]
-        img = cv2.resize(img, None, fx=ratio, fy=ratio)
-        img = add_text_to_image(img,matched_titles[idx],font_scale=1,font_thickness=2, top_left_xy=(20,img.shape[0]-500))
+        if sub_plot_size is None:
+            ratio = max_height/img.shape[0]
+            img = cv2.resize(img, None, fx=ratio, fy=ratio)
+        else:
+            img = resize_with_pad(img, sub_plot_size)
+        img = add_text_to_image(img,matched_titles[idx],font_scale=1,font_thickness=2, top_left_xy=(20,img.shape[0]-128))
         # img = cv2.putText(img, matched_titles[idx], (20,img.shape[0]-40), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)
         if idx == 0:
             im_concat = img
@@ -176,10 +183,28 @@ def read_img(img_path):
     img = cv2.imread(img_path)
     return img
 
-from typing import Optional, Tuple
+def resize_with_pad(image: np.array, 
+                    new_shape: Tuple[int, int], 
+                    padding_color: Tuple[int] = (255, 255, 255)) -> np.array:
+    """Maintains aspect ratio and resizes with padding.
+    Params:
+        image: Image to be resized.
+        new_shape: Expected (width, height) of new image.
+        padding_color: Tuple in BGR of padding color
+    Returns:
+        image: Resized image with padding
+    """
+    original_shape = (image.shape[1], image.shape[0])
+    ratio = float(max(new_shape))/max(original_shape)
+    new_size = tuple([int(x*ratio) for x in original_shape])
+    image = cv2.resize(image, new_size)
+    delta_w = new_shape[0] - new_size[0]
+    delta_h = new_shape[1] - new_size[1]
+    top, bottom = delta_h//2, delta_h-(delta_h//2)
+    left, right = delta_w//2, delta_w-(delta_w//2)
+    image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_color)
+    return image
 
-import cv2
-import numpy as np
 
 
 def add_text_to_image(

@@ -7,14 +7,17 @@ from typing import Tuple
 
 
 save_img_root = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/'
-save_img_dir = 'google_cartoon/'
+# save_img_dir = 'google_cartoon/'
 # save_img_dir = 'metahuman/'
+save_img_dir = 'NovelAI_male/'
 
 url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/Data_HITL_navi/other_system/'
 # url_root = 'https://minghaouserstudy.s3.amazonaws.com/HITL_navi/test/'
 
-img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/cartoonset100k/save_dir/0110'
+# img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/cartoonset100k/save_dir/0110'
 # img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/metahuman/metahuman'
+img_dir = '/Users/minghaoliu/Desktop/Data_HITL_navi/other_system/'+save_img_dir
+
 
 save_root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/'
 csv_path = save_img_dir.replace('/','') + '.csv'
@@ -58,12 +61,13 @@ with open(save_root+csv_path, 'w') as f:
             matched_titles = ['']*len(buffer)
             im_concat = data_utils.concat_list_image(buffer,matched_titles)
             
-            save_path = os.path.join(save_img_root+save_img_dir, buff_id+'.jpg')
+            # save_path = os.path.join(save_img_root+save_img_dir, buff_id+'.jpg')
+            save_path = os.path.join(save_img_root+save_img_dir, buff_id)
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
             im_concat = resize_with_pad(im_concat, (1000, 1000))
 
-            cv2.imwrite(save_path, im_concat)
+            # cv2.imwrite(save_path, im_concat)
             buffer, buff_id = [img_path], id
             url = save_path.replace(save_img_root, url_root)
             writer.writerow([url])

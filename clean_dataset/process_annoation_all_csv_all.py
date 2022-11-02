@@ -129,7 +129,30 @@ if save_individual_json:
         with open(individual_json_path, 'w') as f:
             json.dump(out_dict, f, indent=4)
 
-# TODO get Time distribution and disagreement
+
+
+##### Search algorithm #####
+import data_utils
+import json
+from search_algo  import search_algorithm 
+human_root = '/Users/minghaoliu/Desktop/Data_HITL_navi/test'
+asset_root = '/Users/minghaoliu/Desktop/HITL_navi/data/asset/images'
+asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/asset/820_faceattribute_round2_asset_translate_soft.json'
+human_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/all_results_soft.json'
+with open(asset_json_path, 'r') as f:
+    asset_data = json.load(f)
+with open(human_json_path, 'r') as f:
+    human_data = json.load(f)
+# Sort dict by key,return a dict
+def sort_dict(data):
+    return dict(sorted(data.items(), key=lambda d:d[0]))
+asset_data,human_data = sort_dict(asset_data), sort_dict(human_data)
+algo = search_algorithm()
+##### Search algorithm #####
+
+
+''' Get Time distribution and disagreement'''
+# label_image_dir = 'FairFace2.0/all_results_individual_123/'
 label_image_dir = 'FairFace2.0/'
 human_names = ['all_results_individual_1','all_results_individual_2','all_results_individual_3']
 huaman_attr_dicts = {}
@@ -148,6 +171,7 @@ for human_name in human_names:
 
     # Get matched images
     match_im_dir = root  + human_name + '_mapped_match'
+    # match_im_dir = root  + 'all_results_individual_123/'+human_name + '_mapped_match'
     match_paths = data_utils.make_im_set(match_im_dir)
     match_asset_dict = {}
     for match_path in match_paths:
@@ -158,12 +182,27 @@ for human_name in human_names:
 a=1
 match_template = [0]*(len(human_names))
 tasks = huaman_attr_dicts['1'].keys()
+
+tasks, target_tasks = list(huaman_attr_dicts['1'].keys()), list(huaman_match_dicts['1'].keys())
+tasks = [task for task in tasks if task in target_tasks]
+# uniton of task and asset
 for task in tasks:
-    cur_vot = []
+    human_tag_ = human_data[task]
+    cur_vot, cur_dist = [], []
     for human_name in human_names:
         name_ = human_name.split('_')[-1]
         cur_vot.append(huaman_match_dicts[name_][task])
-    aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
+
+        asset_tag_ = asset_data[huaman_match_dicts[name_][task]+'.png']
+        asset_top1_dict_ = {'0':asset_tag_}
+        search_scores, search_reports= algo.multi_round_search(human_tag_,asset_top1_dict_)
+        cur_dist.append(search_scores['0'])
+
+        a=1
+    # aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
+    aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_dist))])
+
+    if len(cur_vot) <= 1: continue
     match_template[aggrement-1] += 1
 aggre_works = 100*sum(match_template[1:])/sum(match_template)
 print("Match aggrement",match_template, "aggre_works",round(aggre_works,2))
@@ -182,10 +221,17 @@ for key in tag_template:
             cur_vot.append(list(huaman_attr_dicts[name_][task][key].keys())[0])
         aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
         tag_template[key][aggrement-1] += 1
+
+aggre_works_list = []
 for key in tag_template:
     aggre_works = 100*sum(tag_template[key][1:])/sum(tag_template[key])
     print(key,tag_template[key], "aggre_works",round(aggre_works,2))
+    aggre_works_list.append(aggre_works)
 
+print("Average aggrement",round(sum(aggre_works_list)/len(aggre_works_list),2))
+
+# TODO: Fix top direction 
+# If two assets has the same distance to human, that's consider as a tie ==> aggre works 
 
 a=1
 

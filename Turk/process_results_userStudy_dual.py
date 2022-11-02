@@ -193,7 +193,7 @@ import collections
 # print(set(a).difference(set(b)))
 # print(set(b).difference(set(a)))
 
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/dual_run4/'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/dual_run2/'
 # label_csv = root + 'Batch_4912817_batch_results.csv'
 # label_csv = root + 'pred_dual.csv'
 label_csv = root + 'bd_dual.csv'
@@ -388,7 +388,7 @@ for case in vote_dict:
         correct_dict[method_name2] = [correct_dict[method_name2][0], correct_dict[method_name2][1]+1]
         both_failed_counter += 1
         both_failed_dict[input_name] = vote_dict[input_human_]
-        save_image = True
+        # save_image = True
     elif max_key == '1': # Using good score isnteading of bad score
         # correct_dict[method_name1] = [correct_dict[method_name1][0]  , correct_dict[method_name1][1]+1]
         # correct_dict[method_name2] = [correct_dict[method_name2][0]+1, correct_dict[method_name2][1]+1]

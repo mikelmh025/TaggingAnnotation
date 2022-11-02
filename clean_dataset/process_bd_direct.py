@@ -40,6 +40,25 @@ save_dir = root + label_image_dir + human_name+'/'+image_subset+'_mapped'
 # human_json_path = root + label_image_dir + human_name+'.json'
 human_csv_path = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/direct_bd/annotation_translated.csv'
 
+
+##### Search algorithm #####
+import data_utils
+import json
+from search_algo  import search_algorithm 
+asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/asset/820_faceattribute_round2_asset_translate_soft.json'
+human_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/FairFace2.0/all_results_soft.json'
+with open(asset_json_path, 'r') as f:
+    asset_data = json.load(f)
+with open(human_json_path, 'r') as f:
+    human_data = json.load(f)
+# Sort dict by key,return a dict
+def sort_dict(data):
+    return dict(sorted(data.items(), key=lambda d:d[0]))
+asset_tags,human_tags = sort_dict(asset_data), sort_dict(human_data)
+algo = search_algorithm()
+##### Search algorithm #####
+
+
 # Load csv to dict
 human_data = {}
 with open(human_csv_path, 'r') as f:
@@ -78,11 +97,18 @@ time_list = []
 match_template = [0]*(annotation_rounds)
 
 for case in human_data:
+    human_tag_ = human_tags[case]
 
-    cur_vot = []
+    cur_vot,cur_dist = [],[]
     for i in range(1,annotation_rounds+1):
         time_list.append(float(human_data[case]['Time'+str(i)]))
         cur_vot.append(human_data[case]['Selected'+str(i)])
+
+        # Get distance
+        asset_tag_ = asset_tags[human_data[case]['Selected'+str(i)]]
+        asset_top1_dict_ = {'0':asset_tag_}
+        search_scores, search_reports= algo.multi_round_search(human_tag_,asset_top1_dict_)
+        cur_dist.append(search_scores['0'])
 
         if save_match_img:  # Save Selected image
             selected_image_path = asset_dir + '/' + human_data[case]['Selected'+str(i)]
@@ -93,7 +119,9 @@ for case in human_data:
             save_path = save_dir_+ '/'+ case + '_' + human_data[case]['Selected'+str(i)].replace('.png', '.jpg')
             cv2.imwrite(save_path, selected_image)
     
-    aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
+    # aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_vot))])
+    aggrement = max([len(list(group)) for key, group in groupby(sorted(cur_dist))])
+
     match_template[aggrement-1] += 1
 
 print('Average time: ', sum(time_list)/len(time_list))
