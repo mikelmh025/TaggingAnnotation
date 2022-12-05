@@ -13,6 +13,25 @@
             "justMyCode": true
         },
         {
+            "name": "Test Tag Other system",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "args": [
+                "--dataset=face_attribute",
+                "--seed=0",
+                "--result_dir=test_round3/metahuman_female",
+                "--loss=mse",
+                "--model=resnet50",
+                "--batch_size=16",
+                "--get_top_k=5",
+                "--target_mode=tag",
+                "--checkpoint=train_round2/face_attribute/resnet50/msebest.pt",
+                "--otherSystem=metahuman_female"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Test Tag",
             "type": "python",
             "request": "launch",

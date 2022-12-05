@@ -34,6 +34,7 @@ parser.add_argument('--debug', action='store_true')
 parser.add_argument('--checkpoint', type=str, help='path to checkpoint', default='debug_dir/tagging/resnet/msebest.pt')
 parser.add_argument('--get_top_k', type=int, default=1, help='top k matched images in output')
 parser.add_argument('--target_mode', type=str, help='use tag or img(direct) to train', default='tag')
+parser.add_argument('--otherSystem', type=str, help='use tag or img(direct) to train', default=None)
 
 args = parser.parse_args()
 
@@ -56,7 +57,13 @@ multi_class_attr_dict = {
 #Search algorithm
 algo = search_algorithm()
 
-asset_json_path = args.data_root + 'asset/soft_label.json'
+if args.otherSystem is not None:
+    asset_json_path = '/home/minghao/Documents/taggingAnnotation/data/' + args.otherSystem +'/soft_label.json'
+    asset_img_root = '/home/minghao/Documents/taggingAnnotation/data/'+args.otherSystem+'/image/'
+else:
+    asset_json_path = args.data_root + 'asset/soft_label.json'
+    asset_img_root = args.data_root + 'asset/image/'
+
 with open(asset_json_path, 'r') as f:
     asset_data = json.load(f)
 
@@ -110,7 +117,10 @@ def search_report2img(all_search_scores,all_search_reports, source_img_paths, id
     matched_assets = list(all_search_scores[idx_key].keys())[:args.get_top_k]
 
     # Convert to image path
-    matched_paths = [os.path.join(args.data_root,'asset/images/',asset_name) for asset_name in matched_assets]
+    # matched_paths = [os.path.join(args.data_root,'asset/images/',asset_name) for asset_name in matched_assets]
+    matched_paths = [os.path.join(asset_img_root,asset_name) for asset_name in matched_assets]
+
+    
     out_list = [human_path]+matched_paths
 
     # Add titles
@@ -190,7 +200,9 @@ def param2match(labels, pred,extra_info_dict):
                 matched_name = list(pred_search_scores[key].keys())[i]
                 image_name_ = image_name.split('.')[0]
                 save_name_ = image_name_+'_'+matched_name+'.jpg'
-                matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
+                # matched_path = os.path.join(args.data_root,'asset/images/',matched_name)
+                matched_path = os.path.join(asset_img_root,matched_name)
+                
                 cv2.imwrite(str(single_match_path+'/'+save_name_), cv2.imread(matched_path))
 
         
