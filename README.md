@@ -15,7 +15,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py --dataset=face_attribute --seed=0 --resul
 
 ```
 
-Test the trained model
+## Test the trained model
 
 ```
 # Testing with Tag models
@@ -32,3 +32,5 @@ CUDA_VISIBLE_DEVICES=0 python test.py  --seed=0 --result_dir=test_results --mode
     --checkpoint=train_round2/face_attribute/resnet50/msebest.pt \
     --dataset=face_attribute --batch_size=24 --loss=mse --get_top_k=5 --target_mode=img 
 ```
+
+
