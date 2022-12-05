@@ -41,3 +41,10 @@ CUDA_VISIBLE_DEVICES=0 python test.py  --seed=0 --result_dir=test_results --mode
 5. Guide of using the search algorithm 
 
 
+
+
+## Other functions 
+Get results from tag json files to mapped image results
+```
+data_processing/process_N2one_annotation_r2.py
+```
