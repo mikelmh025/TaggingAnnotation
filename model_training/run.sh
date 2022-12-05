@@ -1,4 +1,4 @@
-export PYTHONPATH='./:./data:./clean_dataset:./Turk:../Turk/:../clean_dataset'
+export PYTHONPATH='./:./data:./data_processing:./Turk:../Turk/:../data_processing'
 sudo mount /dev/sda1 /media/otter/
 # sudo du /media/ -sch
 sudo mount -o remount,rw '/media/otter/'

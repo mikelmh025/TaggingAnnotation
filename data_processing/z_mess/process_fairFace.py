@@ -20,8 +20,8 @@ import cv2
 import os
 from pathlib import Path
 
-from clean_dataset.face_parsing.test import Evaluator, vis_parsing_maps
-from clean_dataset.face_parsing.model import BiSeNet
+from data_processing.face_parsing.test import Evaluator, vis_parsing_maps
+from data_processing.face_parsing.model import BiSeNet
 import torch
 import numpy as np
 
@@ -35,7 +35,7 @@ result_dict={}
 
 
 # init face parsing network
-face_parsing_checkpoint_path = 'clean_dataset/face_parsing/res/cp/79999_iter.pth'
+face_parsing_checkpoint_path = 'data_processing/face_parsing/res/cp/79999_iter.pth'
 
 # net = BiSeNet(n_classes=19)
 # net.load_state_dict(torch.load(face_parsing_checkpoint_path,map_location=torch.device('cpu')))

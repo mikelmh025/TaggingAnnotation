@@ -1,7 +1,7 @@
 # FairFace2.0/*
 
 data/FairFace2.0/*
-# clean_dataset/*
+# data_processing/*
 lark doc/*
 */debug_dir/*
 */__pycache__/*
@@ -28,7 +28,7 @@ Turk/turk_exp/*
 tune_search/*
 .DS_Store
 
-clean_dataset/.DS_Store
+data_processing/.DS_Store
 # *.py
 
 *.zip

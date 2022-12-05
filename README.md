@@ -5,7 +5,7 @@
 Training the model using resnet. 
 ```
 # Set path
-export PYTHONPATH='./:./data:./clean_dataset'
+export PYTHONPATH='./:./data:./data_processing'
 
 # Train with Tags. The model predict the tags and use search algorithms for final output
 CUDA_VISIBLE_DEVICES=0 python train.py --dataset=face_attribute --seed=0 --result_dir=debug_dir --loss=mse --model=resnet --lr=0.00001 --batch_size=128 --print_freq=50 --n_epoch=300 --num_workers=20
