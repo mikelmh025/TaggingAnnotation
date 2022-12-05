@@ -7,8 +7,8 @@ import random
 
 def create_template(header_list,mode=1):
     if mode==1:
-        header_template = np.ones((25, 128, 3), dtype=np.uint8)*255
-        font_scale, font_thickness = 0.33, 1
+        header_template = np.ones((50, 128, 3), dtype=np.uint8)*255
+        font_scale, font_thickness = 0.75, 2
     elif mode==2:
         header_template = np.ones((50, 128, 3), dtype=np.uint8)*255
         font_scale, font_thickness = 0.75, 2
@@ -64,11 +64,19 @@ def create_paper_fig(root, method_dict, case_id=None, sub_plot_size=None,max_row
             if method_name == input_key:
                 cur_dict[method_name] = [input_image_path]
                 titles = [input_image_name]
+                titles = ['']
                 img_dict_[method_name] = data_utils.concat_list_image([input_image_path],sub_plot_size=sub_plot_size,matched_titles=titles)
             else:
                 top_list, top_titles = [], []
                 for i in range(get_topk):
-                    top_list.append(method_path_dict[method_name][str(i+1)][input_image_name])
+
+                    # Manual fix: Use raw bitmoji assets
+                    topk_path = method_path_dict[method_name][str(i+1)][input_image_name]
+                    id = topk_path.split('/')[-1].split('.')[0].split('_')[1]
+                    bitmojit_raw_root = '/Users/minghaoliu/Desktop/HITL_navi/data/asset/image_raw/'
+                    topk_path = os.path.join(bitmojit_raw_root, id+'.png')
+
+                    top_list.append(topk_path)
                     top_titles.append('top'+str(i+1))
                 cur_dict[method_name] = top_list
                 titles = ['']*len(top_list)
@@ -115,7 +123,7 @@ def create_paper_fig(root, method_dict, case_id=None, sub_plot_size=None,max_row
 
 
 
-def config(fig_id):
+def config(fig_id,mode='all'):
 
 
     if fig_id=='5':
@@ -126,6 +134,11 @@ def config(fig_id):
         71559, 59389, 48508, 58684, 70336, 32688, 68293, 39221, 50122, 14984, 80129,36729,
         77749,20765, 6385, 67028, 72356, 21281, 44569, 24882, 37182, 44391, 
         70430, 71706, 15533,9313, 71665, 15334, 15687, 23453, 76308, 68687, 11344,30981,8346]
+        # paper cases
+        if mode == 'paper':
+            case_id2 = [80522,5085,29374,8467,59389,37128,15533]
+            case_id = [i for i in case_id if i not in case_id2]
+            # case_id = [80522,5085,29374,8467,59389,37128,15533] # paper cases
         case_id = [str(item) for item in case_id]
         method_dict = {
             'col1':['test'            , 'Input human'],
@@ -139,17 +152,20 @@ def config(fig_id):
 
 if __name__ == "__main__":
     # fig_ids  = ['1','3','7']
+    mode = 'paper' # 'all'
     fig_ids  = ['5']
 
     for fig_id in fig_ids:
         data_root = '/Users/minghaoliu/Desktop/Data_HITL_navi/'
         save_dir = 'paper_writing/Fig'+fig_id
-        fig_name = 'test'   # Not including the extension
+        
+        # Not including the extension
+        fig_name = 'test' if mode!='paper' else 'Fig_'+fig_id
 
-        method_dict, case_id = config(fig_id)
+        method_dict, case_id = config(fig_id,mode)
 
         # Randomly select 10 cases
-        case_id = random.sample(case_id, 10)
+        case_id = random.sample(case_id, 57)
 
         # Need to pick the case I want
         # case_id = ['675','15687','8346','32808','37280'] # Limited case for development
@@ -158,7 +174,7 @@ if __name__ == "__main__":
 
 
 
-        figs = create_paper_fig(data_root, method_dict,sub_plot_size=(256,256),case_id=case_id)
+        figs = create_paper_fig(data_root, method_dict,sub_plot_size=(256,256),case_id=case_id,max_row=10)
         for idx, fig in enumerate(figs):
             os.makedirs(save_dir,exist_ok=True)
             save_path = os.path.join(save_dir, fig_name+'_'+str(idx)+'.png')

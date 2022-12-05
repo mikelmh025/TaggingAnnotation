@@ -299,8 +299,8 @@ class search_algorithm ():
 
     def get_one_matched(self, human_label,asset_data,human_key=None,
                         human_image_dir=None,asset_dir=None, 
-                        attr_care = ['top_curly','side_curly'],search_top=15, show_top=5):
-        assert search_top>=show_top, 'search_top must be larger than show_top'
+                        attr_care = ['top_curly','side_curly'],search_top=15):
+        # assert search_top>=show_top, 'search_top must be larger than show_top'
 
         image_name = human_key.split('.')[0]
 
@@ -332,7 +332,7 @@ class search_algorithm ():
         # out_dis_scores, out_dis_reports = dis_scores2, dis_reports2
 
         matched_asset_paths = [os.path.join(asset_dir, key) for key in out_dis_scores.keys()]
-        matched_asset_paths = matched_asset_paths[:show_top]
+        # matched_asset_paths = matched_asset_paths[:show_top]
 
 
         out_paths, out_titles = [huamn_path], ['human']

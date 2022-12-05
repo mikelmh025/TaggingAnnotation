@@ -16,8 +16,8 @@ mode = 'matching'
 
 save_template_tests = False
 
-match_options = 6
-match_counter_dist_thredhold = 7
+match_options = 4
+match_counter_dist_thredhold = 8
 
 csv_save_dir = 'turk_csv/'
 if not os.path.exists(os.path.join(root,csv_save_dir)):
@@ -41,16 +41,21 @@ if not os.path.exists(os.path.join(root,csv_save_dir)):
 
 
 
+# target_dir_dict = {
+#     'test_tag_bd':['aggre'],
+#     'test_direct_pred':['pred'],
+#     'test_tag_pred':['top1'],
+#     'test_tag_turk':[],
+#     'test_direct_bd':[],
+#     'test_direct_turk':[],
+#     'test_other_AgileAvatar_pred':['pred'],
+#     'test_other_F2P_pred':['pred'],
+#     'test_other3_pred':[]
+# }
+
 target_dir_dict = {
     'test_tag_bd':['aggre'],
-    'test_direct_pred':[],
-    'test_tag_pred':['top1'],
-    'test_tag_turk':[],
-    'test_direct_bd':[],
-    'test_direct_turk':[],
-    'test_other1_pred':[],
-    'test_other2_pred':[],
-    'test_other3_pred':[]
+    'test_other_F2P_pred':['pred'],
 }
 
 ##### Search algorithm #####
@@ -195,8 +200,8 @@ if 'matching' in mode:
             # Process each human image / Case
             buffer_list = []
             for target_image_path in target_image_paths:
-                human_name = target_image_path.split('/')[-1].split('_')[0]
-                target_name = target_image_path.split('/')[-1].split('_')[1].replace('.jpg','')
+                human_name = target_image_path.split('/')[-1].split('.')[0].split('_')[0]
+                # target_name = target_image_path.split('/')[-1].split('_')[1].replace('.jpg','')
 
                 human_path_ = os.path.join(root, human_dir, human_name+'.jpg')
                 assert os.path.exists(human_path_), human_path_
@@ -243,7 +248,12 @@ if 'matching' in mode:
                             continue
                         else:
                             template_counter_case_name = all_options[i].split('/')[-1].split('_')[0]
-                            counter_case_path_ = target_image_dict[template_counter_case_name]
+                            try:
+                                counter_case_path_ = target_image_dict[template_counter_case_name]
+                            except:
+                                counter_case_path_ = target_image_dict['20061']
+                                print("Error: ", template_counter_case_name)
+                                
                             assert os.path.exists(counter_case_path_), counter_case_path_
                             counter_case_url_ = counter_case_path_.replace(root, url_root)
                             all_options[i] = counter_case_url_

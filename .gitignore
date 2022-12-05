@@ -32,3 +32,6 @@ clean_dataset/.DS_Store
 # *.py
 
 *.zip
+*.pdf
+*.mp4
+paper_writing/*

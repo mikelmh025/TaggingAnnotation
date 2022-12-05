@@ -140,7 +140,24 @@ def most_frequent(List):
  
     return [num]
 
-def concat_list_image(matched_asset_paths,matched_titles=None,sub_plot_size=None):
+def load_3_channel_greyscale(path):
+    image = cv2.imread(path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = np.stack((image,)*3, axis=-1)
+    return image
+
+def convert_4_channel_to_3_channel(img):
+    if img.shape[2] == 4:
+        # Mask of alpha channel equal to zero
+        mask = img[:, :, 3] == 0
+        # change pixel value of img to 255 if mask is true
+        img[mask] = [255, 255, 255, 0]
+        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        
+    return img
+
+
+def concat_list_image(matched_asset_paths,matched_titles=None,sub_plot_size=None,grey_scale='qweqweqwe'):
     if matched_titles == None:
         matched_titles = ['']*len(matched_asset_paths)
     # assert len(matched_asset_paths) > 0, "No matched asset found"
@@ -152,8 +169,13 @@ def concat_list_image(matched_asset_paths,matched_titles=None,sub_plot_size=None
             matched_asset_paths[idx] = path+'.jpg'
         else:
             matched_asset_paths[idx] = path
+
+    test = matched_asset_paths[0]
+    # CV2 read as grey scale image from "test"
+    
+    grey_test = cv2.imread
     #use cv2
-    imgs = [cv2.imread(str(asset_path)) for idx, asset_path in enumerate(matched_asset_paths)]
+    imgs = [cv2.imread(str(asset_path),cv2.IMREAD_UNCHANGED) if grey_scale not in asset_path else load_3_channel_greyscale(str(asset_path)) for idx, asset_path in enumerate(matched_asset_paths)]
     
     try:
         height_list = [img.shape[0] for img in imgs]
@@ -176,6 +198,9 @@ def concat_list_image(matched_asset_paths,matched_titles=None,sub_plot_size=None
         if idx == 0:
             im_concat = img
         else:
+            # convert img from 4 channel to 3 channel, if it is 4 channel
+            im_concat = convert_4_channel_to_3_channel(im_concat)
+            img = convert_4_channel_to_3_channel(img)
             im_concat = np.concatenate((im_concat, img), axis=1)
     return im_concat
 

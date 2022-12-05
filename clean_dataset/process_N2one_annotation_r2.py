@@ -25,8 +25,8 @@ asset_dir       = root + 'asset/images'
 # asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/google_cartoon_single'
 
 # Metahuman (Female/male same tags)
-# asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_results_soft_labels.json'
-# asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_female'
+asset_json_path = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_results_soft_labels.json'
+asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_female'
 # asset_dir       = '/Users/minghaoliu/Desktop/HITL_navi/data/other_system/metahuman_male'
 
 # NovelAI male (Female/male different tags)
@@ -42,7 +42,7 @@ image_pre_fix = ''
 human_image_dir = root + label_image_dir + image_subset
 human_image_paths = data_utils.make_im_set(human_image_dir)
 
-show_top = 200
+show_top = 2#200
 # search_top = 5
 # assert search_top>=show_top
 
@@ -90,14 +90,14 @@ for human_name in tqdm(human_names):
         matched_asset_paths, matched_titles, image_name, matched_asset_dis_reports =  \
             algo.get_one_matched(human_data[human_key],asset_data,human_key,
                 human_image_dir=human_image_dir,asset_dir=asset_dir,
-                attr_care = ['top_curly','side_curly'],search_top=15, show_top=5)
-        
+                attr_care = ['top_curly','side_curly'],search_top=15)
+        matched_asset_paths = matched_asset_paths[:show_top+1]
         if save_match_img:
             # '''Concatenated version'''
-            # im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles=matched_titles)
-            # cont_save_dir = str(save_dir)+'_concatenate'
-            # os.makedirs(cont_save_dir, exist_ok=True)
-            # cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
+            im_concat = data_utils.concat_list_image(matched_asset_paths,matched_titles=matched_titles)
+            cont_save_dir = str(save_dir)+'_concatenate'
+            os.makedirs(cont_save_dir, exist_ok=True)
+            cv2.imwrite(str(cont_save_dir+'/'+image_name+'.jpg'), im_concat)
 
             '''Individual save'''
             match_save_dir = str(save_dir)+'_match'

@@ -9,7 +9,7 @@ import copy
 import collections
 
 
-root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/match2/'
+root = '/Users/minghaoliu/Desktop/HITL_navi/Turk/turk_exp/match4/'
 label_csv = root + 'matching.csv'
 
 
@@ -91,7 +91,10 @@ for row_idx, row in enumerate(rows):
             print('Error:', output_result_)
             continue
         output_result_ = output_result_.split('/')[-1].split('.')[0]
-        output_name, output_target = output_result_.split('_')[0], output_result_.split('_')[1]
+        if len(output_result_.split('_')) ==2:
+            output_name, output_target = output_result_.split('_')[0], output_result_.split('_')[1]
+        else:
+            output_name, output_target = output_result_, output_result_
 
 
         input_target = None
@@ -99,7 +102,11 @@ for row_idx, row in enumerate(rows):
         for option in input_options_:
             if option == 'zzzz': continue
             option_name = option.split('/')[-1].split('.')[0]
-            option_image, option_target = option_name.split('_')[0], option_name.split('_')[1]
+            # option_image, option_target = option_name.split('_')[0], option_name.split('_')[1]
+            if len(option_name.split('_')) ==2:
+                option_image, option_target = option_name.split('_')[0], option_name.split('_')[1]
+            else:
+                option_image, option_target = option_name, option_name
             if input_name == option_image: 
                 input_target = option_target
                 # break
