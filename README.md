@@ -33,4 +33,11 @@ CUDA_VISIBLE_DEVICES=0 python test.py  --seed=0 --result_dir=test_results --mode
     --dataset=face_attribute --batch_size=24 --loss=mse --get_top_k=5 --target_mode=img 
 ```
 
+## Coming soon
+1. Pretrained model
+2. Human dataset: images, Labels
+3. Asset images: Bitmojit, Google Cartoon Set, MetaHuman, NovelAI. 
+4. Asset Labels: Bitmojit, Google Cartoon Set, MetaHuman, NovelAI.
+5. Guide of using the search algorithm 
+
 
